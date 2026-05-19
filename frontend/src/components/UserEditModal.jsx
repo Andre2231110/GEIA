@@ -110,7 +110,7 @@ export default function UserEditModal({ user, onClose, onSaved }) {
               />
             </div>
             <div className="form-field">
-              <label>Role</label>
+              <label>Função</label>
               <select
                 value={form.role}
                 onChange={e => setForm(f => ({ ...f, role: e.target.value }))}

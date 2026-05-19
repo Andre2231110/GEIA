@@ -295,7 +295,7 @@ export default function AdminDashboard() {
                     <thead>
                       <tr>
                         <th>Utilizador</th>
-                        <th>Role</th>
+                        <th>Função</th>
                         <th>Estado</th>
                         <th>Turma(s)</th>
                         <th>Prompt IA</th>
@@ -370,7 +370,7 @@ export default function AdminDashboard() {
                       <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••" required disabled={submitting} />
                     </div>
                     <div className="form-field">
-                      <label>Role</label>
+                      <label>Função</label>
                       <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} disabled={submitting}>
                         <option value="aluno">Aluno</option>
                         <option value="professor">Professor</option>

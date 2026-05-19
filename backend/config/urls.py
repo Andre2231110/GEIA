@@ -12,7 +12,6 @@ urlpatterns = [
     path('api/llmcloud/', llmcloud_chat),
     path('api/admin/login/', admin_login),
 
-    # Users
     path('api/users/login/', user_login),
     path('api/users/', user_list),
     path('api/users/create/', user_create),
@@ -20,7 +19,6 @@ urlpatterns = [
     path('api/users/<int:pk>/delete/', user_delete),
     path('api/users/activate/<uuid:token>/', user_activate),
 
-    # Classes
     path('api/classes/', class_list),
     path('api/classes/create/', class_create),
     path('api/classes/<int:pk>/edit/', class_edit),

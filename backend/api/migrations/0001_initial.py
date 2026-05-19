@@ -4,6 +4,18 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+def criar_admin(apps, schema_editor):
+    User = apps.get_model('api', 'User')
+    if not User.objects.filter(email='admin@geia.pt').exists():
+        User.objects.create(
+            name='Admin',
+            email='admin@geia.pt',
+            password='admin123',
+            role='admin',
+            is_active=True,
+        )
+
+
 class Migration(migrations.Migration):
 
     initial = True
@@ -87,4 +99,5 @@ class Migration(migrations.Migration):
                 'unique_together': {('user', 'classroom')},
             },
         ),
+        migrations.RunPython(criar_admin, migrations.RunPython.noop),
     ]

@@ -312,23 +312,21 @@
 .users-table th {
   text-align: left;
   padding: 10px 14px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #475569;
-  border-bottom: 1px solid #0f172a;
+  color: #64748b;
+  border-bottom: 1px solid #1e293b;
 }
 
 .users-table td {
-  padding: 13px 14px;
-  border-bottom: 1px solid #0f172a;
+  padding: 14px 14px;
+  border-bottom: 1px solid #1e293b;
   color: #cbd5e1;
   vertical-align: middle;
 }
 
 .users-table tr:last-child td { border-bottom: none; }
-.users-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+.users-table tbody tr:hover td { background: rgba(255,255,255,0.04); }
 
 /* User cell */
 .user-cell { display: flex; align-items: center; gap: 12px; }
