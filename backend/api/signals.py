@@ -6,7 +6,7 @@ from .models import User
 
 
 @receiver(post_save, sender=User)
-def send_activation_email_on_create(_sender, instance, created, **_kwargs):
+def send_activation_email_on_create(sender, instance, created, **kwargs):
     if not created or instance.is_active:
         return
 

@@ -196,12 +196,21 @@ def llmcloud_chat(request):
     if not message:
         return Response({"error": "Mensagem vazia."}, status=status.HTTP_400_BAD_REQUEST)
 
-    response = _ollama.chat(
-        model=OLLAMA_MODEL,
-        messages=[{"role": "user", "content": message}],
-    )
-    reply = response.message.content
-    return Response({"reply": reply})
+    messages = []
+
+    user_id = request.data.get("user_id")
+    if user_id:
+        try:
+            user = User.objects.get(pk=user_id)
+            if user.custom_prompt:
+                messages.append({"role": "system", "content": user.custom_prompt})
+        except User.DoesNotExist:
+            pass
+
+    messages.append({"role": "user", "content": message})
+
+    response = _ollama.chat(model=OLLAMA_MODEL, messages=messages)
+    return Response({"reply": response.message.content})
 
 
 class ClassViewSet(viewsets.ModelViewSet):
