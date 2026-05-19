@@ -109,7 +109,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -141,5 +140,5 @@ EMAIL_PORT = 2525
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = '4bfe65bc9f4e9b'      
 EMAIL_HOST_PASSWORD = '495ee98b96d478'  
-DEFAULT_FROM_EMAIL = 'GEIA <noreply@geia.pt>'
+DEFAULT_FROM_EMAIL = '<noreply@geia.pt>'
 FRONTEND_URL = 'http://localhost:5173'

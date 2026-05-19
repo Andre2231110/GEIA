@@ -22,6 +22,21 @@ def hello(request):
 
 
 @api_view(['POST'])
+def user_login(request):
+    email = request.data.get("email", "").strip()
+    password = request.data.get("password", "")
+    try:
+        user = User.objects.get(email=email)
+        if not user.is_active:
+            return Response({"error": "Conta ainda não ativada."}, status=status.HTTP_401_UNAUTHORIZED)
+        if user.password == password:
+            return Response({"success": True, "id": user.id, "name": user.name, "email": user.email, "role": user.role})
+        return Response({"error": "Credenciais inválidas."}, status=status.HTTP_401_UNAUTHORIZED)
+    except User.DoesNotExist:
+        return Response({"error": "Credenciais inválidas."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+@api_view(['POST'])
 def admin_login(request):
     username = request.data.get("username", "")
     password = request.data.get("password", "")

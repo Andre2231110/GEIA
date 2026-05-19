@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path
 from api.views import (
-    hello, llmcloud_chat, admin_login,
+    hello, llmcloud_chat, admin_login, user_login,
     user_list, user_create, user_edit, user_delete, user_activate,
     class_list, class_create, class_edit, class_delete,
     class_students, class_add_student, class_remove_student,
@@ -9,11 +9,11 @@ from api.views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/hello/', hello),
     path('api/llmcloud/', llmcloud_chat),
     path('api/admin/login/', admin_login),
 
     # Users
+    path('api/users/login/', user_login),
     path('api/users/', user_list),
     path('api/users/create/', user_create),
     path('api/users/<int:pk>/edit/', user_edit),

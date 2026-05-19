@@ -42,8 +42,6 @@ class User(models.Model):
         return self.name
 
 
-# =========================================
-
 
 class Class(models.Model):
 
@@ -72,7 +70,6 @@ class Class(models.Model):
         return self.name
 
 
-# =========================================
 
 
 class UserClass(models.Model):
@@ -91,7 +88,6 @@ class UserClass(models.Model):
         unique_together = ('user', 'classroom')
 
 
-# =========================================
 
 
 class Conversation(models.Model):
@@ -128,8 +124,6 @@ class Conversation(models.Model):
         return self.title or f"Conversation {self.id}"
 
 
-# =========================================
-
 
 class UserConversation(models.Model):
 
@@ -146,8 +140,6 @@ class UserConversation(models.Model):
     class Meta:
         unique_together = ('user', 'conversation')
 
-
-# =========================================
 
 
 class Message(models.Model):

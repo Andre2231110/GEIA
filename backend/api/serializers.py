@@ -23,7 +23,6 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def get_classes(self, obj):
-        # alunos → via UserClass; professores → via Class.teacher FK
         as_student = [
             {'id': uc.classroom.id, 'name': uc.classroom.name}
             for uc in obj.userclass_set.select_related('classroom').all()
