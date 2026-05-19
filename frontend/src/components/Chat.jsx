@@ -56,13 +56,12 @@ export default function Chat() {
     <div className="chat">
       <header className="chat-header">
         <span className="chat-logo">GEIA</span>
-        <span className="chat-subtitle">Assistente de Inteligência Artificial</span>
+        <span className="chat-subtitle">Gateway Educational IA</span>
       </header>
 
       <div className="chat-body">
         {messages.length === 0 && !loading && (
-          <div className="chat-empty">
-            <p>Olá! Estou aqui para ajudar. Faz-me uma pergunta.</p>
+          <div className="chat-placeholder">
           </div>
         )}
 
@@ -90,7 +89,7 @@ export default function Chat() {
           value={input}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder="Escreve uma mensagem... (Enter para enviar)"
+          placeholder="Pergunte qualquer coisa..."
           rows={1}
           disabled={loading}
         />

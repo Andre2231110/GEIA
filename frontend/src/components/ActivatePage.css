@@ -1,0 +1,85 @@
+.activate-wrapper {
+  min-height: 100dvh;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.activate-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.activate-logo {
+  font-size: 22px;
+  font-weight: 700;
+  color: #818cf8;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+
+.activate-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.activate-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.activate-icon-ok {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+}
+
+.activate-icon-err {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+.activate-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.activate-msg {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.activate-msg strong {
+  color: #cbd5e1;
+}
+
+.activate-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #1e293b;
+  border-top-color: #818cf8;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

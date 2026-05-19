@@ -1,16 +1,12 @@
 from django.db import models
-
-# Create your models here.
-
-
-from django.db import models
+import uuid
 
 
 class User(models.Model):
 
     ROLE_CHOICES = [
-        ('student', 'Student'),
-        ('teacher', 'Teacher'),
+        ('aluno', 'Aluno'),
+        ('professor', 'Professor'),
         ('admin', 'Admin'),
     ]
 
@@ -30,7 +26,9 @@ class User(models.Model):
         choices=ROLE_CHOICES
     )
 
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
+
+    activation_token = models.UUIDField(default=uuid.uuid4, unique=True)
 
     created_at = models.DateTimeField(
         auto_now_add=True
@@ -51,7 +49,7 @@ class Class(models.Model):
 
     name = models.CharField(max_length=100)
 
-    course = models.CharField(max_length=100)
+    course = models.CharField(max_length=100, blank=True, null=True)
 
     year = models.IntegerField()
 

@@ -108,8 +108,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
+
 
 LANGUAGE_CODE = 'en-us'
 
@@ -130,7 +129,17 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#Permite chamadas do frontend
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
+
+# Email (Mailtrap)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
+EMAIL_PORT = 2525
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = '4bfe65bc9f4e9b'      
+EMAIL_HOST_PASSWORD = '495ee98b96d478'  
+DEFAULT_FROM_EMAIL = 'GEIA <noreply@geia.pt>'
+FRONTEND_URL = 'http://localhost:5173'

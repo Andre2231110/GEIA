@@ -1,33 +1,31 @@
-"""
-URL configuration for config project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
-from django.urls import path, include
-from api.views import hello, llmcloud_chat, admin_login
-
-from rest_framework.routers import DefaultRouter
-from api.views import ClassViewSet
-
-router = DefaultRouter()
-router.register(r'classes', ClassViewSet)
+from django.urls import path
+from api.views import (
+    hello, llmcloud_chat, admin_login,
+    user_list, user_create, user_edit, user_delete, user_activate,
+    class_list, class_create, class_edit, class_delete,
+    class_students, class_add_student, class_remove_student,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/hello/', hello),
     path('api/llmcloud/', llmcloud_chat),
     path('api/admin/login/', admin_login),
-    path('api/', include(router.urls)),
+
+    # Users
+    path('api/users/', user_list),
+    path('api/users/create/', user_create),
+    path('api/users/<int:pk>/edit/', user_edit),
+    path('api/users/<int:pk>/delete/', user_delete),
+    path('api/users/activate/<uuid:token>/', user_activate),
+
+    # Classes
+    path('api/classes/', class_list),
+    path('api/classes/create/', class_create),
+    path('api/classes/<int:pk>/edit/', class_edit),
+    path('api/classes/<int:pk>/delete/', class_delete),
+    path('api/classes/<int:pk>/students/', class_students),
+    path('api/classes/<int:pk>/students/add/', class_add_student),
+    path('api/classes/<int:pk>/students/<int:student_pk>/remove/', class_remove_student),
 ]

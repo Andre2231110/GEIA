@@ -51,16 +51,55 @@
   border-radius: 4px;
 }
 
-/* Empty state */
-.chat-empty {
+.chat-bem-vindo {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #475569;
-  font-size: 15px;
+  gap: 6px;
+  padding: 40px 20px;
   text-align: center;
-  padding: 40px;
+}
+
+.chat-bv-logo {
+  font-size: 48px;
+  font-weight: 700;
+  color: #818cf8;
+  letter-spacing: -2px;
+  margin-bottom: 2px;
+}
+
+.chat-bv-sub {
+  margin: 0 0 22px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.chat-sugestoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.chat-sugestao {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  color: #94a3b8;
+  font-size: 14px;
+  font-family: inherit;
+  padding: 11px 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.chat-sugestao:hover {
+  border-color: #4f46e5;
+  color: #e2e8f0;
 }
 
 /* Messages */
