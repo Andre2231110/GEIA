@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import './Chat.css'
 
 const ROLE_LABEL = { aluno: 'Aluno', professor: 'Professor', admin: 'Administrador' }
@@ -7,6 +7,8 @@ export default function Chat() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [conversaId, setConversaId] = useState(null)
+  const [conversas, setConversas] = useState([])
 
   const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('chatUser')) } catch { return null }
@@ -22,6 +24,32 @@ export default function Chat() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  const carregarConversas = useCallback(async (u) => {
+    if (!u) return
+    try {
+      const res = await fetch(`/api/conversations/?user_id=${u.id}`)
+      setConversas(await res.json())
+    } catch { setConversas([]) }
+  }, [])
+
+  useEffect(() => {
+    carregarConversas(user)
+  }, [user, carregarConversas])
+
+  async function abrirConversa(conv) {
+    setConversaId(conv.id)
+    try {
+      const res = await fetch(`/api/conversations/${conv.id}/messages/`)
+      const data = await res.json()
+      setMessages(data)
+    } catch { setMessages([]) }
+  }
+
+  function novaConversa() {
+    setConversaId(null)
+    setMessages([])
+  }
 
   async function sendMessage() {
     const text = input.trim()
@@ -41,10 +69,14 @@ export default function Chat() {
       const res = await fetch('/api/llmcloud/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, user_id: user.id }),
+        body: JSON.stringify({ message: text, user_id: user.id, conversation_id: conversaId }),
       })
       const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+      if (data.conversation_id) {
+        setConversaId(data.conversation_id)
+        carregarConversas(user)
+      }
     } catch {
       setMessages(prev => [
         ...prev,
@@ -98,6 +130,8 @@ export default function Chat() {
     setUser(null)
     localStorage.removeItem('chatUser')
     setMessages([])
+    setConversas([])
+    setConversaId(null)
   }
 
   return (
@@ -105,7 +139,29 @@ export default function Chat() {
 
       <aside className="chat-nav">
         <div className="chat-nav-logo">GEIA</div>
-        <div className="chat-nav-spacer" />
+
+        {user && (
+          <button className="chat-nova-btn" onClick={novaConversa}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Nova conversa
+          </button>
+        )}
+
+        <div className="chat-conversas">
+          {conversas.map(c => (
+            <button
+              key={c.id}
+              className={`chat-conversa-item ${conversaId === c.id ? 'chat-conversa-ativa' : ''}`}
+              onClick={() => abrirConversa(c)}
+              title={c.title}
+            >
+              {c.title}
+            </button>
+          ))}
+        </div>
+
         <div className="chat-nav-footer">
           {user ? (
             <div className="chat-account">
@@ -132,7 +188,6 @@ export default function Chat() {
 
       <div className="chat">
         <div className="chat-body">
-
           {messages.map((msg, i) => (
             <div key={i} className={`msg msg-${msg.role}`}>
               <div className="msg-bubble">{msg.content}</div>

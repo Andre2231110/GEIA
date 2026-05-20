@@ -5,6 +5,7 @@ from api.views import (
     user_list, user_create, user_edit, user_delete, user_activate,
     class_list, class_create, class_edit, class_delete,
     class_students, class_add_student, class_remove_student,
+    conversation_list, conversation_messages,
 )
 
 urlpatterns = [
@@ -18,6 +19,9 @@ urlpatterns = [
     path('api/users/<int:pk>/edit/', user_edit),
     path('api/users/<int:pk>/delete/', user_delete),
     path('api/users/activate/<uuid:token>/', user_activate),
+
+    path('api/conversations/', conversation_list),
+    path('api/conversations/<int:pk>/messages/', conversation_messages),
 
     path('api/classes/', class_list),
     path('api/classes/create/', class_create),

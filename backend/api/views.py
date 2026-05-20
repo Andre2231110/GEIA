@@ -1,20 +1,22 @@
+import os
+from dotenv import load_dotenv
+from pathlib import Path
+load_dotenv(Path(__file__).resolve().parent.parent / '.env')
+
 from django.http import JsonResponse
 from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from ollama import Client
-from .models import Class, User, UserClass
+from .models import Class, User, UserClass, Conversation, Message, UserConversation
 from .serializers import ClassSerializer, UserSerializer
 
-OLLAMA_HOST = "https://ollama.com"
-OLLAMA_TOKEN = "34d6cc52a55d4527b861bd142db9589a.Hzc6E2XUl5zqxxzsICTlmdcl"
-OLLAMA_MODEL = "gpt-oss:120b"
-
 _ollama = Client(
-    host=OLLAMA_HOST,
-    headers={"Authorization": f"Bearer {OLLAMA_TOKEN}"},
+    host=os.getenv('OLLAMA_HOST'),
+    headers={"Authorization": f"Bearer {os.getenv('OLLAMA_TOKEN')}"},
 )
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL')
 
 
 def hello(request):
@@ -196,21 +198,67 @@ def llmcloud_chat(request):
     if not message:
         return Response({"error": "Mensagem vazia."}, status=status.HTTP_400_BAD_REQUEST)
 
-    messages = []
+    msgs_to_send = []
+    user = None
 
     user_id = request.data.get("user_id")
     if user_id:
         try:
             user = User.objects.get(pk=user_id)
             if user.custom_prompt:
-                messages.append({"role": "system", "content": user.custom_prompt})
+                msgs_to_send.append({"role": "system", "content": user.custom_prompt})
         except User.DoesNotExist:
             pass
 
-    messages.append({"role": "user", "content": message})
+    msgs_to_send.append({"role": "user", "content": message})
 
-    response = _ollama.chat(model=OLLAMA_MODEL, messages=messages)
-    return Response({"reply": response.message.content})
+    response = _ollama.chat(model=OLLAMA_MODEL, messages=msgs_to_send)
+    reply = response.message.content
+
+    conv_id = None
+    if user:
+        conv = None
+        conversation_id = request.data.get("conversation_id")
+        if conversation_id:
+            try:
+                conv = Conversation.objects.get(pk=conversation_id)
+            except Conversation.DoesNotExist:
+                pass
+
+        if not conv:
+            conv = Conversation.objects.create(title=message[:60])
+            UserConversation.objects.create(user=user, conversation=conv)
+
+        Message.objects.create(role='user', content=message, conversation=conv)
+        Message.objects.create(role='assistant', content=reply, conversation=conv)
+        conv_id = conv.id
+
+    return Response({"reply": reply, "conversation_id": conv_id})
+
+
+@api_view(['GET'])
+def conversation_list(request):
+    user_id = request.query_params.get('user_id')
+    if not user_id:
+        return Response([])
+    convs = Conversation.objects.filter(
+        userconversation__user_id=user_id,
+        is_archived=False
+    ).order_by('-updated_at')
+    return Response([
+        {'id': c.id, 'title': c.title or 'Sem título', 'updated_at': str(c.updated_at)}
+        for c in convs
+    ])
+
+
+@api_view(['GET'])
+def conversation_messages(request, pk):
+    try:
+        conv = Conversation.objects.get(pk=pk)
+    except Conversation.DoesNotExist:
+        return Response({'error': 'Conversa não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+    msgs = conv.messages.order_by('created_at').values('role', 'content')
+    return Response(list(msgs))
 
 
 class ClassViewSet(viewsets.ModelViewSet):

@@ -1,8 +1,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -11,57 +10,58 @@
 }
 
 .modal-box {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 3px;
   width: 100%;
   max-width: 580px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-  animation: modal-in 0.15s ease;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+  animation: modal-in 0.12s ease;
 }
 
 @keyframes modal-in {
-  from { opacity: 0; transform: scale(0.96) translateY(8px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid #c3c4c7;
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: #1d2327;
 }
 
 .modal-close {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: #8c8f94;
   cursor: pointer;
   padding: 4px;
   display: flex;
-  border-radius: 6px;
-  transition: color 0.15s, background 0.15s;
+  border-radius: 3px;
+  transition: color 0.12s, background 0.12s;
 }
 
 .modal-close:hover {
-  color: #e2e8f0;
-  background: #334155;
+  color: #1d2327;
+  background: #f0f0f1;
 }
 
 .modal-close svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .modal-form {
-  padding: 20px 24px 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -82,37 +82,39 @@
 .form-field label {
   font-size: 13px;
   font-weight: 500;
-  color: #94a3b8;
+  color: #1d2327;
 }
 
 .label-hint {
   font-weight: 400;
-  color: #64748b;
+  color: #8c8f94;
 }
 
 .form-field input,
 .form-field select,
 .form-field textarea {
-  background: #0f172a;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 9px 12px;
   font-size: 14px;
-  color: #e2e8f0;
+  color: #1d2327;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.12s;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.07);
 }
 
 .form-field input:focus,
 .form-field select:focus,
 .form-field textarea:focus {
-  border-color: #4f46e5;
+  border-color: #2271b1;
+  box-shadow: 0 0 0 1px #2271b1;
 }
 
 .form-field input::placeholder,
 .form-field textarea::placeholder {
-  color: #475569;
+  color: #8c8f94;
 }
 
 .form-field textarea {
@@ -121,7 +123,7 @@
 }
 
 .form-field select option {
-  background: #1e293b;
+  background: #fff;
 }
 
 /* Toggle */
@@ -136,23 +138,23 @@
   align-items: center;
   gap: 10px;
   background: transparent;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  padding: 8px 14px;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 7px 12px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 14px;
-  transition: border-color 0.2s, background 0.2s;
+  font-size: 13px;
+  transition: border-color 0.12s, background 0.12s;
 }
 
-.toggle-on  { border-color: #4ade80; background: rgba(74,222,128,0.08); color: #4ade80; }
-.toggle-off { border-color: #334155; background: transparent; color: #64748b; }
+.toggle-on  { border-color: #1a7924; background: #edfaef; color: #1a7924; }
+.toggle-off { border-color: #c3c4c7; background: #fff; color: #50575e; }
 
 .toggle-thumb {
   width: 32px;
   height: 18px;
   border-radius: 999px;
-  background: #334155;
+  background: #c3c4c7;
   position: relative;
   transition: background 0.2s;
   flex-shrink: 0;
@@ -166,12 +168,12 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #64748b;
-  transition: transform 0.2s, background 0.2s;
+  background: #fff;
+  transition: transform 0.2s;
 }
 
-.toggle-on .toggle-thumb { background: rgba(74,222,128,0.25); }
-.toggle-on .toggle-thumb::after { transform: translateX(14px); background: #4ade80; }
+.toggle-on .toggle-thumb { background: #1a7924; }
+.toggle-on .toggle-thumb::after { transform: translateX(14px); }
 
 .toggle-label { font-size: 13px; font-weight: 500; }
 
@@ -179,68 +181,72 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 10px 12px;
-  background: #0f172a;
-  border: 1px solid #334155;
-  border-radius: 8px;
+  padding: 8px 12px;
+  background: #f6f7f7;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
   min-height: 40px;
   align-items: center;
 }
 
 .class-tag {
-  background: rgba(8,145,178,0.12);
-  color: #38bdf8;
-  font-size: 12px;
+  background: #e5f5fa;
+  color: #0073aa;
+  font-size: 11px;
   font-weight: 500;
-  padding: 3px 10px;
-  border-radius: 999px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
 }
 
 .form-error {
   margin: 0;
   font-size: 13px;
-  color: #f87171;
+  color: #d63638;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 4px;
+  padding: 14px 20px;
+  border-top: 1px solid #c3c4c7;
+  background: #f6f7f7;
+  border-radius: 0 0 3px 3px;
 }
 
 .cancel-btn {
-  padding: 10px 20px;
-  background: transparent;
-  border: 1px solid #334155;
-  color: #94a3b8;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 8px 18px;
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  color: #50575e;
+  border-radius: 4px;
+  font-size: 13px;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.12s, color 0.12s;
 }
 
 .cancel-btn:hover:not(:disabled) {
-  background: #334155;
-  color: #e2e8f0;
+  background: #f0f0f1;
+  color: #1d2327;
 }
 
 .save-btn {
-  padding: 10px 24px;
-  background: #4f46e5;
+  padding: 8px 20px;
+  background: #2271b1;
   border: none;
   color: #fff;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 4px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.15s, opacity 0.15s;
+  transition: background 0.12s, opacity 0.12s;
 }
 
 .save-btn:hover:not(:disabled) {
-  background: #4338ca;
+  background: #135e96;
 }
 
 .save-btn:disabled,
