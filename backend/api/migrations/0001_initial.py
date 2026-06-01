@@ -2,6 +2,7 @@
 
 import django.db.models.deletion
 from django.db import migrations, models
+from django.contrib.auth.hashers import make_password
 
 
 def criar_admin(apps, schema_editor):
@@ -10,7 +11,7 @@ def criar_admin(apps, schema_editor):
         User.objects.create(
             name='Admin',
             email='admin@geia.pt',
-            password='admin123',
+            password=make_password('admin123'),
             role='admin',
             is_active=True,
         )

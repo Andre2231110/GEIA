@@ -11,6 +11,10 @@ from rest_framework import status
 from ollama import Client
 from .models import Class, User, UserClass, Conversation, Message, UserConversation
 from .serializers import ClassSerializer, UserSerializer
+from django.contrib.auth.hashers import check_password
+
+
+
 
 _ollama = Client(
     host=os.getenv('OLLAMA_HOST'),
@@ -23,6 +27,7 @@ def hello(request):
     return JsonResponse({'message': 'Backend Django a funcionar!'})
 
 
+
 @api_view(['POST'])
 def user_login(request):
     email = request.data.get("email", "").strip()
@@ -31,25 +36,26 @@ def user_login(request):
         user = User.objects.get(email=email)
         if not user.is_active:
             return Response({"error": "Conta ainda não ativada."}, status=status.HTTP_401_UNAUTHORIZED)
-        if user.password == password:
+        if check_password(password, user.password):
             return Response({"success": True, "id": user.id, "name": user.name, "email": user.email, "role": user.role})
         return Response({"error": "Credenciais inválidas."}, status=status.HTTP_401_UNAUTHORIZED)
     except User.DoesNotExist:
-        return Response({"error": "Credenciais inválidas."}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"error": "User não existe"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 @api_view(['POST'])
 def admin_login(request):
     username = request.data.get("username", "")
     password = request.data.get("password", "")
+    
 
     try:
         user = User.objects.get(name=username, role='admin')
-        if user.password == password and user.is_active:
+        if check_password(password, user.password) and user.is_active:
             return Response({"success": True, "name": user.name})
         return Response({"error": "Credenciais inválidas."}, status=status.HTTP_401_UNAUTHORIZED)
     except User.DoesNotExist:
-        return Response({"error": "Credenciais inválidas."}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"error": "Credenciais inválidas."}, status=status.HTTP_403_FORBIDDEN)
 
 
 
