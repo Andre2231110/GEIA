@@ -196,6 +196,41 @@ def teacher_login(request):
             {'error': 'Credenciais inválidas.'},
             status=status.HTTP_401_UNAUTHORIZED
         )
+    
+@api_view(['GET'])
+def teacher_stats(request, pk):
+    try:
+        teacher = User.objects.get(pk=pk, role='professor')
+    except User.DoesNotExist:
+        return Response(
+            {"error": "Professor não encontrado."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    turmas = Class.objects.filter(teacher=teacher)
+
+    total_turmas = turmas.count()
+
+    total_alunos = UserClass.objects.filter(
+        classroom__in=turmas,
+        user__role='aluno'
+    ).values('user').distinct().count()
+
+    total_conversas = UserConversation.objects.filter(
+        user__userclass__classroom__in=turmas,
+        user__role='aluno'
+    ).values('conversation').distinct().count()
+
+    return Response({
+        "teacher": {
+            "id": teacher.id,
+            "name": teacher.name,
+            "email": teacher.email,
+        },
+        "total_turmas": total_turmas,
+        "total_alunos": total_alunos,
+        "total_conversas": total_conversas,
+    })
 
 
 @api_view(['GET'])
