@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.urls import path
 from api.views import (
     hello, llmcloud_chat, admin_login, user_login,
-    user_list, user_create, user_edit, user_delete, user_activate,
+    user_list, user_create, user_edit, user_delete, user_activate,change_password,
+    teacher_login,
     class_list, class_create, class_edit, class_delete,
     class_students, class_add_student, class_remove_student,
     conversation_list, conversation_messages,
@@ -19,6 +20,8 @@ urlpatterns = [
     path('api/users/<int:pk>/edit/', user_edit),
     path('api/users/<int:pk>/delete/', user_delete),
     path('api/users/activate/<uuid:token>/', user_activate),
+    path('api/users/<int:pk>/change-password/',change_password),
+    path('api/teacher/login/',teacher_login),
 
     path('api/conversations/', conversation_list),
     path('api/conversations/<int:pk>/messages/', conversation_messages),

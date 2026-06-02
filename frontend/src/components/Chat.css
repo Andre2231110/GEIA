@@ -85,24 +85,33 @@
 .chat-account {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+
+  position: relative;
+  cursor: pointer;
+
+  padding: 12px;
 }
 
 .chat-account-avatar {
-  width: 34px;
-  height: 34px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: #2271b1;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+
+  background: #2f80ed;
+  color: white;
+  font-weight: 600;
 }
 
-.chat-account-info { flex: 1; min-width: 0; }
+.chat-account-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 
 .chat-account-name {
   margin: 0;
@@ -411,3 +420,79 @@
 
 .chat-login-submit:hover:not(:disabled) { background: #135e96; }
 .chat-login-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.chat-user-menu {
+  position: absolute;
+  bottom: 70px;
+  left: 0;
+
+  width: 260px;
+
+  background: #1d2327;
+  border: 1px solid #444;
+  border-radius: 18px;
+
+  padding: 8px;
+
+  box-shadow: 0 10px 30px rgba(0,0,0,.4);
+
+  z-index: 1000;
+}
+
+.chat-user-menu-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+
+  color: white;
+  text-align: left;
+
+  padding: 14px;
+  border-radius: 12px;
+
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.chat-user-menu-item:hover {
+  background: #404040;
+}
+
+.chat-user-menu-item.logout {
+  color: #ff6b6b;
+}
+
+.profile-modal {
+  width: 500px;
+  max-width: 90vw;
+
+  background: #1e2732;
+  border: 1px solid #2d3a4a;
+
+  border-radius: 20px;
+
+  padding: 24px;
+
+  color: white;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 24px;
+}
+
+.profile-close {
+  border: none;
+  background: transparent;
+  color: white;
+
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.profile-content {
+  min-height: 200px;
+}
