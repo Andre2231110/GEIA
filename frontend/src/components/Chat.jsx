@@ -1,4 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 import './Chat.css'
 
 const ROLE_LABEL = { aluno: 'Aluno', professor: 'Professor', admin: 'Administrador' }
@@ -281,7 +285,15 @@ export default function Chat() {
         <div className="chat-body">
           {messages.map((msg, i) => (
             <div key={i} className={`msg msg-${msg.role}`}>
-              <div className="msg-bubble">{msg.content}</div>
+              <div className="msg-bubble">
+                {msg.role === 'assistant' ? (
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    {msg.content}
+                  </ReactMarkdown>
+                ) : (
+                  msg.content
+                )}
+              </div>
             </div>
           ))}
 
