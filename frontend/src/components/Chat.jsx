@@ -4,6 +4,20 @@ import './Chat.css'
 const ROLE_LABEL = { aluno: 'Aluno', professor: 'Professor', admin: 'Administrador' }
 
 export default function Chat() {
+
+  const [showMenu, setShowMenu] = useState(false)
+
+  const [showProfile, setShowProfile] = useState(false)
+    const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+
+  const [profileError, setProfileError] = useState('')
+  const [profileSuccess, setProfileSuccess] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -134,6 +148,63 @@ export default function Chat() {
     setConversaId(null)
   }
 
+  async function handleChangePassword() {
+      setProfileError('')
+      setProfileSuccess('')
+
+      if (
+        passwordForm.newPassword !==
+        passwordForm.confirmPassword
+      ) {
+        setProfileError('As passwords não coincidem.')
+        return
+      }
+
+      setSavingProfile(true)
+
+      try {
+        const res = await fetch(
+          `/api/users/${user.id}/change-password/`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              current_password:
+                passwordForm.currentPassword,
+              new_password:
+                passwordForm.newPassword,
+            }),
+          }
+        )
+
+        const data = await res.json()
+
+        if (res.ok) {
+          setProfileSuccess(
+            'Password alterada com sucesso.'
+          )
+
+          setPasswordForm({
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+          })
+        } else {
+          setProfileError(
+            data.error || 'Erro ao alterar password.'
+          )
+        }
+      } catch {
+        setProfileError(
+          'Erro ao comunicar com o servidor.'
+        )
+      } finally {
+        setSavingProfile(false)
+      }
+    }
+
   return (
     <div className="chat-layout">
 
@@ -164,19 +235,39 @@ export default function Chat() {
 
         <div className="chat-nav-footer">
           {user ? (
-            <div className="chat-account">
+            <div
+                className="chat-account"
+                onClick={() => setShowMenu(!showMenu)}
+              >
+                {showMenu && (
+                  <div className="chat-user-menu">
+                    <button
+                        className="chat-user-menu-item"
+                        onClick={() => {
+                          setShowProfile(true)
+                          setShowMenu(false)
+                        }}
+                      >
+                      Perfil
+                    </button>
+
+                    <button className="chat-user-menu-item">
+                      Configurações
+                    </button>
+
+                    <button
+                      className="chat-user-menu-item logout"
+                      onClick={handleLogout}
+                    >
+                      Sair
+                    </button>
+                  </div>
+                )}
               <div className="chat-account-avatar">{user.name[0].toUpperCase()}</div>
               <div className="chat-account-info">
                 <p className="chat-account-name">{user.name}</p>
                 <p className="chat-account-role">{ROLE_LABEL[user.role] || user.role}</p>
               </div>
-              <button className="chat-logout-btn" onClick={handleLogout} title="Sair">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-              </button>
             </div>
           ) : (
             <button className="chat-entrar-btn" onClick={() => setShowLogin(true)}>
@@ -274,6 +365,106 @@ export default function Chat() {
           </div>
         </div>
       )}
+
+      {showProfile && (
+        <div
+          className="chat-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowProfile(false)
+            }
+          }}
+        >
+          <div className="profile-modal">
+            <div className="profile-header">
+              <h2>Perfil</h2>
+
+              <button
+                className="profile-close"
+                onClick={() => setShowProfile(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="profile-content">
+
+              <div className="profile-user-section">
+                <div className="chat-account-avatar">{user.name[0].toUpperCase()}</div>
+
+                <div>
+                  Nome: <h3>{user.name}</h3>
+                  E-mail: <p>{user.email}</p>
+                  Role: <p>{ROLE_LABEL[user.role] || user.role}</p>
+                </div>
+              </div>
+
+              <div className="profile-divider" />
+
+              <h3>Alterar password</h3>
+
+              <div className="profile-field">
+                <label>Password atual</label>
+                <input
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) =>
+                    setPasswordForm({
+                      ...passwordForm,
+                      currentPassword: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="profile-field">
+                <label>Nova password</label>
+                <input
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) =>
+                    setPasswordForm({
+                      ...passwordForm,
+                      newPassword: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="profile-field">
+                <label>Confirmar password</label>
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordForm({
+                      ...passwordForm,
+                      confirmPassword: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              {profileError && (
+                <p className="profile-error">{profileError}</p>
+              )}
+
+              {profileSuccess && (
+                <p className="profile-success">{profileSuccess}</p>
+              )}
+
+              <button
+                className="profile-save-btn"
+                onClick={handleChangePassword}
+                disabled={savingProfile}
+              >
+                {savingProfile ? 'A guardar...' : 'Guardar alterações'}
+              </button>
+
+            </div>
+                </div>
+              </div>
+            )}
 
     </div>
   )

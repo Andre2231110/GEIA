@@ -12,8 +12,7 @@ from rest_framework import status
 from ollama import Client
 from .models import Class, User, UserClass, Conversation, Message, UserConversation, AlarmingMessage
 from .serializers import ClassSerializer, UserSerializer
-from django.contrib.auth.hashers import check_password
-
+from django.contrib.auth.hashers import check_password,make_password
 
 
 
@@ -119,6 +118,120 @@ def user_delete(request, pk):
         return Response(status=status.HTTP_204_NO_CONTENT)
     except User.DoesNotExist:
         return Response({"error": "Utilizador não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+    
+@api_view(['PUT'])
+def change_password(request, pk):
+    try:
+        user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return Response(
+            {"error": "Utilizador não encontrado"},
+            status=404
+        )
+
+    current_password = request.data.get(
+        'current_password'
+    )
+
+    new_password = request.data.get(
+        'new_password'
+    )
+
+    if not check_password(
+        current_password,
+        user.password
+    ):
+        return Response(
+            {"error": "Password atual incorreta"},
+            status=400
+        )
+
+    user.password = make_password(
+        new_password
+    )
+
+    user.save()
+
+    return Response({
+        "success": True
+    })
+
+
+
+
+@api_view(['POST'])
+def teacher_login(request):
+    email = request.data.get('email', '')
+    password = request.data.get('password', '')
+
+    try:
+        user = User.objects.get(email=email)
+
+        if user.role != 'professor':
+            return Response(
+                {'error': 'Acesso não autorizado.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if not user.is_active:
+            return Response(
+                {'error': 'Conta desativada.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if not check_password(password, user.password):
+            return Response(
+                {'error': 'Credenciais inválidas.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        return Response({
+            'id': user.id,
+            'name': user.name,
+            'email': user.email,
+            'role': user.role,
+        })
+
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'Credenciais inválidas.'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+@api_view(['GET'])
+def teacher_stats(request, pk):
+    try:
+        teacher = User.objects.get(pk=pk, role='professor')
+    except User.DoesNotExist:
+        return Response(
+            {"error": "Professor não encontrado."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    turmas = Class.objects.filter(teacher=teacher)
+
+    total_turmas = turmas.count()
+
+    total_alunos = UserClass.objects.filter(
+        classroom__in=turmas,
+        user__role='aluno'
+    ).values('user').distinct().count()
+
+    total_conversas = UserConversation.objects.filter(
+        user__userclass__classroom__in=turmas,
+        user__role='aluno'
+    ).values('conversation').distinct().count()
+
+    return Response({
+        "teacher": {
+            "id": teacher.id,
+            "name": teacher.name,
+            "email": teacher.email,
+        },
+        "total_turmas": total_turmas,
+        "total_alunos": total_alunos,
+        "total_conversas": total_conversas,
+    })
 
 
 @api_view(['GET'])
