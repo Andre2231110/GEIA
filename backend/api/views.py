@@ -1,4 +1,5 @@
 import os
+import threading
 from dotenv import load_dotenv
 from pathlib import Path
 load_dotenv(Path(__file__).resolve().parent.parent / '.env')
@@ -9,7 +10,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from ollama import Client
-from .models import Class, User, UserClass, Conversation, Message, UserConversation
+from .models import Class, User, UserClass, Conversation, Message, UserConversation, AlarmingMessage
 from .serializers import ClassSerializer, UserSerializer
 from django.contrib.auth.hashers import check_password
 
@@ -198,6 +199,35 @@ def class_remove_student(request, pk, student_pk):
         return Response({"error": "Associação não encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
 
+def _classify_and_save(message, user):
+    try:
+        classification_msgs = [
+            {
+                "role": "user",
+                "content": (
+                    "You are a content safety classifier for an educational platform used by students (minors).\n"
+                    "Analyze the following message and determine if it contains alarming content.\n\n"
+                    "Flag as ALARM if the message involves ANY of the following:\n"
+                    "- Violence, weapons, explosives, or instructions on how to cause harm\n"
+                    "- Self-harm or suicide\n"
+                    "- Threats against people or institutions\n"
+                    "- Illegal activities or drug use\n"
+                    "- Pornographic, sexual, or adult content (e.g. requests for adult websites, nude images, sexual topics)\n"
+                    "- Requests for inappropriate websites or content unsuitable for minors\n"
+                    "- Bullying, harassment, or hate speech\n"
+                    "- Any content clearly inappropriate for an educational school environment\n\n"
+                    "Reply with ONLY ONE WORD: either ALARM or SAFE\n\n"
+                    f"Message: {message}"
+                ),
+            }
+        ]
+        result = _ollama.chat(model=OLLAMA_MODEL, messages=classification_msgs)
+        if 'ALARM' in result.message.content.upper():
+            AlarmingMessage.objects.create(user=user, message=message)
+    except Exception:
+        pass
+
+
 @api_view(['POST'])
 def llmcloud_chat(request):
     message = request.data.get("message", "").strip()
@@ -239,7 +269,38 @@ def llmcloud_chat(request):
         Message.objects.create(role='assistant', content=reply, conversation=conv)
         conv_id = conv.id
 
+        t = threading.Thread(target=_classify_and_save, args=(message, user), daemon=True)
+        t.start()
+
     return Response({"reply": reply, "conversation_id": conv_id})
+
+
+@api_view(['GET'])
+def alarming_messages_list(request):
+    msgs = AlarmingMessage.objects.select_related('user').order_by('-created_at')
+    data = [
+        {
+            'id': m.id,
+            'user_name': m.user.name if m.user else 'Desconhecido',
+            'user_email': m.user.email if m.user else '',
+            'message': m.message,
+            'is_read': m.is_read,
+            'created_at': m.created_at.isoformat(),
+        }
+        for m in msgs
+    ]
+    return Response(data)
+
+
+@api_view(['POST'])
+def alarming_message_mark_read(request, pk):
+    try:
+        msg = AlarmingMessage.objects.get(pk=pk)
+        msg.is_read = True
+        msg.save()
+        return Response({'success': True})
+    except AlarmingMessage.DoesNotExist:
+        return Response({'error': 'Não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['GET'])

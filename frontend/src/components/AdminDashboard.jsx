@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import './AdminDashboard.css'
 import UserEditModal from './UserEditModal'
 import ClassesSection from './ClassesSection'
+import AlarmingMessagesSection from './AlarmingMessagesSection'
 
 const EMPTY_FORM = { name: '', email: '', password: '', role: 'aluno', custom_prompt: '' }
 
@@ -40,11 +41,12 @@ const NAV = [
     ),
   },
   {
-    id: 'conversations',
-    label: 'Conversas',
+    id: 'alarming',
+    label: 'Mensagens Alarmantes',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
       </svg>
     ),
   },
@@ -79,14 +81,24 @@ export default function AdminDashboard() {
   const [formError, setFormError] = useState('')
   const [formSuccess, setFormSuccess] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [unreadAlarms, setUnreadAlarms] = useState(0)
 
   useEffect(() => {
     if (!localStorage.getItem('adminLoggedIn')) { navigate('/admin'); return }
     fetchUsers()
     fetchClasses()
-    const interval = setInterval(fetchUsers, 300000)
+    fetchUnreadAlarms()
+    const interval = setInterval(() => { fetchUsers(); fetchUnreadAlarms() }, 30000)
     return () => clearInterval(interval)
   }, [navigate])
+
+  async function fetchUnreadAlarms() {
+    try {
+      const res = await fetch('/api/alarming-messages/')
+      const data = await res.json()
+      setUnreadAlarms(data.filter(m => !m.is_read).length)
+    } catch { /* silent */ }
+  }
 
   async function fetchUsers() {
     try {
@@ -157,10 +169,15 @@ export default function AdminDashboard() {
             <button
               key={item.id}
               className={`nav-item ${active === item.id ? 'nav-item-active' : ''}`}
-              onClick={() => setActive(item.id)}
+              onClick={() => { setActive(item.id); if (item.id === 'alarming') setUnreadAlarms(0) }}
             >
-              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-icon" style={item.id === 'alarming' ? { color: unreadAlarms > 0 ? '#dc2626' : undefined } : {}}>
+                {item.icon}
+              </span>
               <span className="nav-label">{item.label}</span>
+              {item.id === 'alarming' && unreadAlarms > 0 && (
+                <span className="nav-alarm-badge">{unreadAlarms}</span>
+              )}
             </button>
           ))}
         </nav>
@@ -181,7 +198,10 @@ export default function AdminDashboard() {
         {/* ── Overview ── */}
         {active === 'overview' && (
           <section className="content-section">
-            <h1>Dashboard</h1>
+            <div className="welcome-banner">
+              <h1>Bem-vindo ao GEIA</h1>
+              <p>Plataforma de gestão educacional com inteligência artificial.</p>
+            </div>
             <div className="stats-grid">
               <div className="stat-card">
                 <span className="stat-value">{users.filter(u => u.role === 'aluno').length}</span>
@@ -397,12 +417,7 @@ export default function AdminDashboard() {
 
         {active === 'classes' && <ClassesSection users={users} />}
 
-        {active === 'conversations' && (
-          <section className="content-section">
-            <h1>Conversas</h1>
-            <div className="card placeholder-card"><p>Histórico de conversas — em desenvolvimento.</p></div>
-          </section>
-        )}
+        {active === 'alarming' && <AlarmingMessagesSection />}
 
       </main>
 
