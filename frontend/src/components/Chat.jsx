@@ -1,8 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
+
+function normalizeMath(content) {
+  return content
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_, math) => `$$${math}$$`)
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_, math) => `$${math}$`)
+}
 import './Chat.css'
 
 const ROLE_LABEL = { aluno: 'Aluno', professor: 'Professor', admin: 'Administrador' }
@@ -27,6 +34,10 @@ export default function Chat() {
   const [loading, setLoading] = useState(false)
   const [conversaId, setConversaId] = useState(null)
   const [conversas, setConversas] = useState([])
+  const [editingId, setEditingId] = useState(null)
+  const [editingTitle, setEditingTitle] = useState('')
+  const [menuOpenId, setMenuOpenId] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('chatUser')) } catch { return null }
@@ -42,6 +53,13 @@ export default function Chat() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  useEffect(() => {
+    if (menuOpenId === null) return
+    function fechar() { setMenuOpenId(null) }
+    document.addEventListener('click', fechar)
+    return () => document.removeEventListener('click', fechar)
+  }, [menuOpenId])
 
   const carregarConversas = useCallback(async (u) => {
     if (!u) return
@@ -67,6 +85,49 @@ export default function Chat() {
   function novaConversa() {
     setConversaId(null)
     setMessages([])
+  }
+
+  function iniciarEdicao(e, conv) {
+    e.stopPropagation()
+    setEditingId(conv.id)
+    setEditingTitle(conv.title)
+  }
+
+  async function guardarTitulo(id) {
+    const titulo = editingTitle.trim()
+    if (!titulo) { setEditingId(null); return }
+    try {
+      await fetch(`/api/conversations/${id}/rename/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: titulo }),
+      })
+      setConversas(prev => prev.map(c => c.id === id ? { ...c, title: titulo } : c))
+    } catch { /* mantém título antigo */ }
+    setEditingId(null)
+  }
+
+  function handleEditKeyDown(e, id) {
+    if (e.key === 'Enter') { e.preventDefault(); guardarTitulo(id) }
+    if (e.key === 'Escape') setEditingId(null)
+  }
+
+  async function arquivarConversa(id) {
+    setMenuOpenId(null)
+    try {
+      await fetch(`/api/conversations/${id}/archive/`, { method: 'PATCH' })
+      setConversas(prev => prev.filter(c => c.id !== id))
+      if (conversaId === id) { setConversaId(null); setMessages([]) }
+    } catch { /* mantém conversa se falhar */ }
+  }
+
+  async function eliminarConversa(id) {
+    try {
+      await fetch(`/api/conversations/${id}/delete/`, { method: 'DELETE' })
+      setConversas(prev => prev.filter(c => c.id !== id))
+      if (conversaId === id) { setConversaId(null); setMessages([]) }
+    } catch { /* mantém conversa se falhar */ }
+    setConfirmDeleteId(null)
   }
 
   async function sendMessage() {
@@ -226,14 +287,49 @@ export default function Chat() {
 
         <div className="chat-conversas">
           {conversas.map(c => (
-            <button
+            <div
               key={c.id}
               className={`chat-conversa-item ${conversaId === c.id ? 'chat-conversa-ativa' : ''}`}
-              onClick={() => abrirConversa(c)}
-              title={c.title}
+              onClick={() => editingId !== c.id && abrirConversa(c)}
             >
-              {c.title}
-            </button>
+              {editingId === c.id ? (
+                <input
+                  className="chat-conversa-edit"
+                  value={editingTitle}
+                  onChange={e => setEditingTitle(e.target.value)}
+                  onBlur={() => guardarTitulo(c.id)}
+                  onKeyDown={e => handleEditKeyDown(e, c.id)}
+                  autoFocus
+                  onClick={e => e.stopPropagation()}
+                />
+              ) : (
+                <>
+                  <span className="chat-conversa-titulo" title={c.title}>{c.title}</span>
+                  <div className="chat-conversa-menu-wrap">
+                    <button
+                      className="chat-conversa-dots"
+                      onClick={e => { e.stopPropagation(); setMenuOpenId(menuOpenId === c.id ? null : c.id) }}
+                      title="Opções"
+                    >
+                      ···
+                    </button>
+                    {menuOpenId === c.id && (
+                      <div className="chat-conversa-dropdown">
+                        <button onClick={e => { e.stopPropagation(); iniciarEdicao(e, c); setMenuOpenId(null) }}>
+                          Alterar nome
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); arquivarConversa(c.id) }}>
+                          Arquivar conversa
+                        </button>
+                        <button className="chat-conversa-dropdown-delete" onClick={e => { e.stopPropagation(); setMenuOpenId(null); setConfirmDeleteId(c.id) }}>
+                          Eliminar conversa
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           ))}
         </div>
 
@@ -287,8 +383,11 @@ export default function Chat() {
             <div key={i} className={`msg msg-${msg.role}`}>
               <div className="msg-bubble">
                 {msg.role === 'assistant' ? (
-                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                    {msg.content}
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
+                  >
+                    {normalizeMath(msg.content)}
                   </ReactMarkdown>
                 ) : (
                   msg.content
@@ -477,6 +576,18 @@ export default function Chat() {
                 </div>
               </div>
             )}
+
+      {confirmDeleteId && (
+        <div className="chat-modal-overlay" onClick={() => setConfirmDeleteId(null)}>
+          <div className="chat-confirm-box" onClick={e => e.stopPropagation()}>
+            <p>Tem a certeza que deseja eliminar esta conversa?</p>
+            <div className="chat-confirm-actions">
+              <button className="chat-confirm-cancel" onClick={() => setConfirmDeleteId(null)}>Cancelar</button>
+              <button className="chat-confirm-delete" onClick={() => eliminarConversa(confirmDeleteId)}>Eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

@@ -5,6 +5,7 @@ from pathlib import Path
 load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
 from django.http import JsonResponse
+from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -347,7 +348,16 @@ def llmcloud_chat(request):
     if not message:
         return Response({"error": "Mensagem vazia."}, status=status.HTTP_400_BAD_REQUEST)
 
-    msgs_to_send = []
+    BASE_SYSTEM_PROMPT = (
+        "You are a helpful educational assistant. "
+        "When writing any mathematical expression — fractions, integrals, derivatives, sums, roots, or equations — "
+        "always use LaTeX notation. "
+        "Use $...$ for inline math (e.g. $\\frac{1}{2}$, $\\int_a^b f(x)\\,dx$) "
+        "and $$...$$ on its own line for display math. "
+        "Never write fractions as '1/2' — always use $\\frac{1}{2}$."
+    )
+
+    msgs_to_send = [{"role": "system", "content": BASE_SYSTEM_PROMPT}]
     user = None
 
     user_id = request.data.get("user_id")
@@ -423,12 +433,49 @@ def conversation_list(request):
         return Response([])
     convs = Conversation.objects.filter(
         userconversation__user_id=user_id,
-        is_archived=False
+        is_archived=False,
+        deleted_at__isnull=True
     ).order_by('-updated_at')
     return Response([
         {'id': c.id, 'title': c.title or 'Sem título', 'updated_at': str(c.updated_at)}
         for c in convs
     ])
+
+
+@api_view(['DELETE'])
+def conversation_delete(request, pk):
+    try:
+        conv = Conversation.objects.get(pk=pk)
+    except Conversation.DoesNotExist:
+        return Response({'error': 'Conversa não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+    conv.deleted_at = timezone.now()
+    conv.save()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['PATCH'])
+def conversation_archive(request, pk):
+    try:
+        conv = Conversation.objects.get(pk=pk)
+    except Conversation.DoesNotExist:
+        return Response({'error': 'Conversa não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+    conv.is_archived = True
+    conv.save()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['PATCH'])
+def conversation_rename(request, pk):
+    try:
+        conv = Conversation.objects.get(pk=pk)
+    except Conversation.DoesNotExist:
+        return Response({'error': 'Conversa não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+    title = request.data.get('title', '').strip()
+    if not title:
+        return Response({'error': 'Título não pode ser vazio.'}, status=status.HTTP_400_BAD_REQUEST)
+    conv.title = title[:255]
+    conv.save()
+    return Response({'id': conv.id, 'title': conv.title})
 
 
 @api_view(['GET'])

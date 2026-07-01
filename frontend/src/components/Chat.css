@@ -58,6 +58,9 @@
 
 .chat-conversa-item {
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   text-align: left;
   background: transparent;
   border: none;
@@ -65,12 +68,80 @@
   color: #a7aaad;
   font-size: 13px;
   font-family: inherit;
-  padding: 8px 16px;
+  padding: 8px 8px 8px 16px;
   cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.chat-conversa-titulo {
+  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: background 0.12s, color 0.12s;
+}
+
+.chat-conversa-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.chat-conversa-dots {
+  display: none;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 2px 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  line-height: 1;
+  border-radius: 4px;
+}
+.chat-conversa-dots:hover { background: rgba(255,255,255,0.1); }
+
+.chat-conversa-item:hover .chat-conversa-dots,
+.chat-conversa-ativa .chat-conversa-dots { display: block; }
+
+.chat-conversa-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #2c3338;
+  border: 1px solid #3c4348;
+  border-radius: 6px;
+  min-width: 140px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  overflow: hidden;
+}
+.chat-conversa-dropdown button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #e0e0e0;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+.chat-conversa-dropdown button:hover { background: #3c4348; color: #fff; }
+.chat-conversa-dropdown-delete { color: #e06c6c !important; }
+.chat-conversa-dropdown-delete:hover { background: #5a2020 !important; color: #ff9090 !important; }
+
+.chat-conversa-edit {
+  flex: 1;
+  background: #1a1d20;
+  border: 1px solid #2271b1;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 2px 6px;
+  outline: none;
+  min-width: 0;
 }
 
 .chat-conversa-item:hover { background: #2c3338; color: #fff; }
@@ -496,3 +567,49 @@
 .profile-content {
   min-height: 200px;
 }
+
+.chat-confirm-box {
+  background: #1d2327;
+  border: 1px solid #3c4348;
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 360px;
+  width: 90%;
+  text-align: center;
+}
+.chat-confirm-box p {
+  color: #e0e0e0;
+  font-size: 15px;
+  margin: 0 0 24px;
+}
+.chat-confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.chat-confirm-cancel {
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: 1px solid #3c4348;
+  background: transparent;
+  color: #a7aaad;
+  font-size: 14px;
+  cursor: pointer;
+}
+.chat-confirm-cancel:hover { background: #2c3338; color: #fff; }
+.chat-confirm-delete {
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: none;
+  background: #c0392b;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+.chat-confirm-delete:hover { background: #e74c3c; }
+
+/* Markdown tables */
+.msg-bubble table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 13px; }
+.msg-bubble th, .msg-bubble td { border: 1px solid #3c4348; padding: 6px 12px; text-align: left; }
+.msg-bubble th { background: #2c3338; font-weight: 600; }
+.msg-bubble tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
