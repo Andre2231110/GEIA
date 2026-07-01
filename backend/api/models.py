@@ -117,7 +117,8 @@ class Conversation(models.Model):
 
     users = models.ManyToManyField(
         User,
-        through='UserConversation'
+        through='UserConversation',
+        through_fields=('conversation', 'user'),
     )
 
     def __str__(self):
@@ -135,6 +136,14 @@ class UserConversation(models.Model):
     conversation = models.ForeignKey(
         Conversation,
         on_delete=models.CASCADE
+    )
+
+    shared_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='shared_by_me'
     )
 
     class Meta:

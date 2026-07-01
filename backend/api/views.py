@@ -319,18 +319,23 @@ def _classify_and_save(message, user):
             {
                 "role": "user",
                 "content": (
-                    "You are a content safety classifier for an educational platform used by students (minors).\n"
-                    "Analyze the following message and determine if it contains alarming content.\n\n"
-                    "Flag as ALARM if the message involves ANY of the following:\n"
-                    "- Violence, weapons, explosives, or instructions on how to cause harm\n"
-                    "- Self-harm or suicide\n"
-                    "- Threats against people or institutions\n"
-                    "- Illegal activities or drug use\n"
-                    "- Pornographic, sexual, or adult content (e.g. requests for adult websites, nude images, sexual topics)\n"
-                    "- Requests for inappropriate websites or content unsuitable for minors\n"
-                    "- Bullying, harassment, or hate speech\n"
-                    "- Any content clearly inappropriate for an educational school environment\n\n"
-                    "Reply with ONLY ONE WORD: either ALARM or SAFE\n\n"
+                    "You are a strict content safety classifier for a school platform used by students.\n"
+                    "Your job is to detect genuinely dangerous or harmful messages — NOT normal academic content.\n\n"
+                    "Reply ALARM ONLY if the message clearly and explicitly involves:\n"
+                    "- Direct threats of violence against people or institutions\n"
+                    "- Instructions to build weapons or cause physical harm\n"
+                    "- Self-harm or suicide (explicit statements, not academic study of the topic)\n"
+                    "- Illegal drug use or trafficking\n"
+                    "- Pornographic or sexual content involving minors\n"
+                    "- Severe harassment or hate speech targeting a specific person or group\n\n"
+                    "Reply SAFE for everything else, including:\n"
+                    "- Math, science, history, literature, or any academic subject\n"
+                    "- Requests about fractions, equations, integrals, or any mathematical notation\n"
+                    "- Questions about how things work, even sensitive historical events\n"
+                    "- Normal school assignments and study help\n"
+                    "- Casual conversation or greetings\n\n"
+                    "When in doubt, reply SAFE. Only flag messages with clear and obvious harmful intent.\n\n"
+                    "Reply with ONLY ONE WORD: ALARM or SAFE\n\n"
                     f"Message: {message}"
                 ),
             }
@@ -433,6 +438,7 @@ def conversation_list(request):
         return Response([])
     convs = Conversation.objects.filter(
         userconversation__user_id=user_id,
+        userconversation__shared_by__isnull=True,
         is_archived=False,
         deleted_at__isnull=True
     ).order_by('-updated_at')
@@ -476,6 +482,63 @@ def conversation_rename(request, pk):
     conv.title = title[:255]
     conv.save()
     return Response({'id': conv.id, 'title': conv.title})
+
+
+@api_view(['GET'])
+def shared_conversations_list(request):
+    user_id = request.query_params.get('user_id')
+    if not user_id:
+        return Response([])
+    convs = Conversation.objects.filter(
+        userconversation__user_id=user_id,
+        userconversation__shared_by__isnull=False,
+        is_archived=False,
+        deleted_at__isnull=True
+    ).select_related().order_by('-updated_at')
+    result = []
+    for c in convs:
+        uc = c.userconversation_set.filter(user_id=user_id).first()
+        result.append({
+            'id': c.id,
+            'title': c.title or 'Sem título',
+            'updated_at': str(c.updated_at),
+            'shared_by_name': uc.shared_by.name if uc and uc.shared_by else '',
+        })
+    return Response(result)
+
+
+@api_view(['POST'])
+def conversation_share(request, pk):
+    try:
+        conv = Conversation.objects.get(pk=pk)
+    except Conversation.DoesNotExist:
+        return Response({'error': 'Conversa não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+    email = request.data.get('email', '').strip()
+    sharer_id = request.data.get('user_id')
+
+    try:
+        target = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({'error': 'Utilizador não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        sharer = User.objects.get(pk=sharer_id)
+    except User.DoesNotExist:
+        return Response({'error': 'Utilizador inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if target.id == sharer.id:
+        return Response({'error': 'Não podes partilhar contigo próprio.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    _, created = UserConversation.objects.get_or_create(
+        user=target,
+        conversation=conv,
+        defaults={'shared_by': sharer},
+    )
+    if not created:
+        return Response({'error': 'Conversa já partilhada com este utilizador.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({'success': True})
 
 
 @api_view(['GET'])

@@ -1,0 +1,11 @@
+from django.db import migrations
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('api', '0005_alarmingmessage'),
+        ('api', '0005_auto_20260602_1254'),
+    ]
+
+    operations = []

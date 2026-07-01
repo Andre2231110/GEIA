@@ -7,6 +7,7 @@ from api.views import (
     class_list, class_create, class_edit, class_delete,
     class_students, class_add_student, class_remove_student,
     conversation_list, conversation_messages, conversation_rename, conversation_delete, conversation_archive,
+    shared_conversations_list, conversation_share,
     alarming_messages_list, alarming_message_mark_read,
 )
 
@@ -30,6 +31,8 @@ urlpatterns = [
     path('api/conversations/<int:pk>/rename/', conversation_rename),
     path('api/conversations/<int:pk>/delete/', conversation_delete),
     path('api/conversations/<int:pk>/archive/', conversation_archive),
+    path('api/conversations/<int:pk>/share/', conversation_share),
+    path('api/conversations/shared/', shared_conversations_list),
 
     path('api/alarming-messages/', alarming_messages_list),
     path('api/alarming-messages/<int:pk>/mark-read/', alarming_message_mark_read),
