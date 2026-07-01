@@ -197,3 +197,49 @@ class AlarmingMessage(models.Model):
 
     def __str__(self):
         return f"Alerta de {self.user} - {self.created_at}"
+
+
+class StudentDoubt(models.Model):
+
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='doubts_sent'
+    )
+
+    classroom = models.ForeignKey(
+        Class,
+        on_delete=models.CASCADE,
+        related_name='doubts'
+    )
+
+    conversation = models.ForeignKey(
+        Conversation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='doubts'
+    )
+
+    description = models.TextField()
+
+    teacher_reply = models.TextField(blank=True, null=True)
+
+    replied_at = models.DateTimeField(blank=True, null=True)
+
+    is_read = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Dúvida de {self.student} - {self.classroom}"
+
+
+class StudentDoubtMessage(models.Model):
+    doubt = models.ForeignKey(StudentDoubt, on_delete=models.CASCADE, related_name='thread_messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Mensagem de {self.sender} na dúvida {self.doubt_id}"
