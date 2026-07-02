@@ -11,7 +11,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from ollama import Client
-from .models import Class, User, UserClass, Conversation, Message, UserConversation, AlarmingMessage
+from .models import Class, User, UserClass, Conversation, Message, UserConversation, AlarmingMessage, StudentDoubt, StudentDoubtMessage
 from .serializers import ClassSerializer, UserSerializer
 from django.contrib.auth.hashers import check_password,make_password
 
@@ -23,9 +23,20 @@ _ollama = Client(
 )
 OLLAMA_MODEL = os.getenv('OLLAMA_MODEL')
 
+ALLOWED_MODELS = {
+    'gpt-oss:20b-cloud':     'GPT OSS 20B',
+    'ministral-3:14b-cloud': 'Ministral 3 14B',
+    'qwen3-coder:480b-cloud': 'Qwen3 Coder 480B',
+}
+
 
 def hello(request):
     return JsonResponse({'message': 'Backend Django a funcionar!'})
+
+
+@api_view(['GET'])
+def models_list(request):
+    return Response([{'id': k, 'name': v} for k, v in ALLOWED_MODELS.items()])
 
 
 
@@ -235,6 +246,160 @@ def teacher_stats(request, pk):
     })
 
 
+@api_view(['POST'])
+def student_doubt_submit(request):
+    student_id = request.data.get('student_id')
+    classroom_id = request.data.get('classroom_id')
+    description = request.data.get('description', '').strip()
+    conversation_id = request.data.get('conversation_id')
+    if not student_id or not classroom_id or not description:
+        return Response({'error': 'Campos obrigatórios em falta.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        student = User.objects.get(pk=student_id, role='aluno')
+        classroom = Class.objects.get(pk=classroom_id)
+    except (User.DoesNotExist, Class.DoesNotExist):
+        return Response({'error': 'Aluno ou turma não encontrados.'}, status=status.HTTP_404_NOT_FOUND)
+    if not UserClass.objects.filter(user=student, classroom=classroom).exists():
+        return Response({'error': 'O aluno não pertence a esta turma.'}, status=status.HTTP_403_FORBIDDEN)
+    conversation = None
+    if conversation_id:
+        try:
+            conversation = Conversation.objects.get(pk=conversation_id)
+        except Conversation.DoesNotExist:
+            pass
+    doubt = StudentDoubt.objects.create(
+        student=student, classroom=classroom,
+        description=description, conversation=conversation
+    )
+    return Response({'id': doubt.id}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+def teacher_doubts(request, pk):
+    try:
+        teacher = User.objects.get(pk=pk, role='professor')
+    except User.DoesNotExist:
+        return Response({'error': 'Professor não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+    turmas = Class.objects.filter(teacher=teacher)
+    doubts = StudentDoubt.objects.filter(classroom__in=turmas).select_related('student', 'classroom', 'conversation').order_by('-created_at')
+    result = []
+    for d in doubts:
+        messages = []
+        if d.conversation:
+            messages = list(
+                Message.objects.filter(conversation=d.conversation)
+                .order_by('created_at')
+                .values('role', 'content')
+            )
+        result.append({
+            'id': d.id,
+            'description': d.description,
+            'student_name': d.student.name,
+            'class_name': d.classroom.name,
+            'is_read': d.is_read,
+            'created_at': d.created_at.isoformat(),
+            'conversation_title': d.conversation.title if d.conversation else None,
+            'messages': messages,
+        })
+    return Response(result)
+
+
+@api_view(['PATCH'])
+def teacher_doubt_mark_read(request, pk):
+    try:
+        doubt = StudentDoubt.objects.get(pk=pk)
+    except StudentDoubt.DoesNotExist:
+        return Response({'error': 'Não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+    doubt.is_read = True
+    doubt.save()
+    return Response({'ok': True})
+
+
+@api_view(['PATCH'])
+def teacher_doubt_reply(request, pk):
+    try:
+        doubt = StudentDoubt.objects.get(pk=pk)
+    except StudentDoubt.DoesNotExist:
+        return Response({'error': 'Não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+    reply = request.data.get('reply', '').strip()
+    if not reply:
+        return Response({'error': 'Resposta não pode estar vazia.'}, status=status.HTTP_400_BAD_REQUEST)
+    doubt.teacher_reply = reply
+    doubt.replied_at = timezone.now()
+    doubt.is_read = True
+    doubt.save()
+    return Response({'ok': True})
+
+
+@api_view(['GET'])
+def student_doubts_list(request):
+    student_id = request.query_params.get('student_id')
+    if not student_id:
+        return Response([])
+    doubts = StudentDoubt.objects.filter(
+        student_id=student_id,
+        teacher_reply__isnull=False
+    ).select_related('classroom').order_by('-replied_at')
+    return Response([{
+        'id': d.id,
+        'description': d.description,
+        'teacher_reply': d.teacher_reply,
+        'class_name': d.classroom.name,
+        'replied_at': d.replied_at.isoformat() if d.replied_at else None,
+    } for d in doubts])
+
+
+@api_view(['GET'])
+def student_classes(request):
+    student_id = request.query_params.get('student_id')
+    if not student_id:
+        return Response([])
+    entries = UserClass.objects.filter(user_id=student_id).select_related('classroom')
+    return Response([{'id': e.classroom.id, 'name': e.classroom.name} for e in entries])
+
+
+@api_view(['GET', 'POST'])
+def doubt_messages(request, pk):
+    try:
+        doubt = StudentDoubt.objects.get(pk=pk)
+    except StudentDoubt.DoesNotExist:
+        return Response({'error': 'Não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        msgs = StudentDoubtMessage.objects.filter(doubt=doubt).select_related('sender').order_by('created_at')
+        return Response([{
+            'id': m.id,
+            'sender_id': m.sender_id,
+            'sender_name': m.sender.name,
+            'sender_role': m.sender.role,
+            'content': m.content,
+            'created_at': m.created_at.isoformat(),
+        } for m in msgs])
+
+    sender_id = request.data.get('sender_id')
+    content = request.data.get('content', '').strip()
+    if not sender_id or not content:
+        return Response({'error': 'Campos obrigatórios em falta.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        sender = User.objects.get(pk=sender_id)
+    except User.DoesNotExist:
+        return Response({'error': 'Utilizador não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+    msg = StudentDoubtMessage.objects.create(doubt=doubt, sender=sender, content=content)
+    if sender.role == 'professor' and not doubt.teacher_reply:
+        doubt.teacher_reply = content
+        doubt.replied_at = timezone.now()
+        doubt.is_read = True
+        doubt.save()
+    return Response({
+        'id': msg.id,
+        'sender_id': msg.sender_id,
+        'sender_name': msg.sender.name,
+        'sender_role': msg.sender.role,
+        'content': msg.content,
+        'created_at': msg.created_at.isoformat(),
+    }, status=status.HTTP_201_CREATED)
+
+
 @api_view(['GET'])
 def class_list(request):
     classes = Class.objects.select_related('teacher').all().order_by('name')
@@ -376,7 +541,11 @@ def llmcloud_chat(request):
 
     msgs_to_send.append({"role": "user", "content": message})
 
-    response = _ollama.chat(model=OLLAMA_MODEL, messages=msgs_to_send)
+    model = request.data.get('model', OLLAMA_MODEL)
+    if model not in ALLOWED_MODELS:
+        model = OLLAMA_MODEL
+
+    response = _ollama.chat(model=model, messages=msgs_to_send)
     reply = response.message.content
 
     conv_id = None
@@ -466,6 +635,34 @@ def conversation_archive(request, pk):
     except Conversation.DoesNotExist:
         return Response({'error': 'Conversa não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
     conv.is_archived = True
+    conv.save()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+def conversation_archived_list(request):
+    user_id = request.query_params.get('user_id')
+    if not user_id:
+        return Response([])
+    convs = Conversation.objects.filter(
+        userconversation__user_id=user_id,
+        userconversation__shared_by__isnull=True,
+        is_archived=True,
+        deleted_at__isnull=True
+    ).order_by('-updated_at')
+    return Response([
+        {'id': c.id, 'title': c.title or 'Sem título', 'updated_at': str(c.updated_at)}
+        for c in convs
+    ])
+
+
+@api_view(['PATCH'])
+def conversation_unarchive(request, pk):
+    try:
+        conv = Conversation.objects.get(pk=pk)
+    except Conversation.DoesNotExist:
+        return Response({'error': 'Conversa não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+    conv.is_archived = False
     conv.save()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
