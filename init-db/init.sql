@@ -1,0 +1,1 @@
+CREATE DATABASE processed_db;

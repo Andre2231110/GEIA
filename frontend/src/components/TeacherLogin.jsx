@@ -1,106 +1,114 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import './TeacherLogin.css'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function TeacherLogin() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e) {
-  e.preventDefault()
+  async function handleLogin(e) {
+    e.preventDefault();
 
-  setError('')
-  setLoading(true)
+    setError("");
+    setLoading(true);
 
-  try {
-    const response = await fetch(
-      'http://localhost:8000/api/teacher/login/',
-      {
-        method: 'POST',
+    try {
+      const res = await fetch("/api/teacher/login/", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem("teacher", JSON.stringify(data));
+        navigate("/backoffice/dashboard");
+      } else {
+        setError(data.error || "Credenciais inválidas.");
       }
-    )
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(
-        data.error || 'Erro ao autenticar.'
-      )
+    } catch {
+      setError("Erro ao conectar ao servidor.");
+    } finally {
+      setLoading(false);
     }
-
-    localStorage.setItem(
-      'teacher',
-      JSON.stringify(data)
-    )
-
-    navigate('/backoffice/dashboard')
-  } catch (err) {
-    setError(err.message)
-  } finally {
-    setLoading(false)
   }
-}
 
-return (
-  <div className="teacher-login-page">
-  <div className="teacher-login-card">
+  return (
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center px-6">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden">
+        <div className="p-10 md:p-12">
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold text-2xl">
+              G
+            </div>
 
-    <h1 className="teacher-login-logo">
-      GEIA
-    </h1>
+            <h2 className="text-3xl font-bold text-slate-900">
+              Entrar no Backoffice
+            </h2>
 
-    <p className="teacher-login-subtitle">
-      Backoffice Professor
-    </p>
+            <p className="text-slate-500 mt-2">
+              Acesso exclusivo para professores.
+            </p>
+          </div>
 
-    <form onSubmit={handleSubmit}>
-      <div className="teacher-field">
-        <label>Email</label>
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                E-mail
+              </label>
 
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+              <input
+                type="email"
+                placeholder="professor@escola.pt"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Palavra-passe
+              </label>
+
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-slate-900 text-white py-3 font-semibold hover:bg-slate-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? "A entrar..." : "Entrar"}
+            </button>
+          </form>
+
+          <p className="text-xs text-slate-400 text-center mt-8">
+            Apenas professores autorizados podem aceder a esta área.
+          </p>
+        </div>
       </div>
-
-      <div className="teacher-field">
-        <label>Password</label>
-
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </div>
-
-      {error && (
-        <p className="teacher-error">
-          {error}
-        </p>
-      )}
-
-      <button
-        className="teacher-login-btn"
-        type="submit"
-      >
-        Entrar
-      </button>
-    </form>
-
-  </div>
-</div>
-)
+    </div>
+  );
 }
