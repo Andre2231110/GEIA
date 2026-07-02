@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./venv/Scripts/python.exe -c \"import sys; print\\(sys.version\\)\")",
+      "Bash(./venv/Scripts/python.exe -m pip list)",
+      "Bash(where python *)",
+      "Bash(where python3 *)",
+      "Bash(py --version)",
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "Bash(npm --version)",
+      "Bash(rm -rf backend/venv backend/env 2>&1; echo done)",
+      "Bash(\"/c/Users/paulo/AppData/Local/Programs/Python/Python311/python.exe\" -m venv venv)",
+      "Bash(./venv/Scripts/python.exe -m pip install --upgrade pip)",
+      "Bash(./venv/Scripts/pip.exe install *)",
+      "Bash(./venv/Scripts/pip.exe freeze *)",
+      "Bash(npm install *)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\paulo\\Desktop\\GEIA-main\\backend\\venv"
+    ]
+  }
+}
