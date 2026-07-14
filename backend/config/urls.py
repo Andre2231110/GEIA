@@ -11,7 +11,7 @@ from api.views import (
     shared_conversations_list, conversation_share, models_list,
     alarming_messages_list, alarming_message_mark_read,
     student_doubt_submit, teacher_doubts, teacher_doubt_mark_read, teacher_doubt_reply,
-    student_classes, student_doubts_list, doubt_messages,
+    student_classes, student_doubts_list, doubt_messages,teacher_classes,
 )
 
 urlpatterns = [
@@ -30,6 +30,7 @@ urlpatterns = [
 
     path('api/teacher/login/',teacher_login),
     path('api/teacher/<int:pk>/stats', teacher_stats),
+    path('api/teacher/<int:pk>/classes',teacher_classes),
     path('api/teacher/<int:pk>/doubts/', teacher_doubts),
     path('api/teacher/doubts/<int:pk>/mark-read/', teacher_doubt_mark_read),
     path('api/teacher/doubts/<int:pk>/reply/', teacher_doubt_reply),

@@ -6,6 +6,7 @@ import ActivatePage from './components/ActivatePage'
 import TeacherLogin from './components/TeacherLogin'
 import TeacherDashboard from './components/TeacherDashboard'
 import NotFound from './components/NotFound'
+import TeacherChat from './components/TeacherChat'
 
 export default function App() {
   return (
@@ -17,7 +18,9 @@ export default function App() {
         <Route path="/backoffice" element={<TeacherLogin />} />
         <Route path="/backoffice/dashboard" element={<TeacherDashboard/>} />
         <Route path="/activate/:token" element={<ActivatePage />} />
+        <Route path="/teacher/chat" element={<TeacherChat />} />
         <Route path="*" element={<NotFound />} />
+        
       </Routes>
     </BrowserRouter>
   )

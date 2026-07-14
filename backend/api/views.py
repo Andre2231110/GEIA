@@ -10,17 +10,15 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from ollama import Client
+from api.services.llm_Cloud import LLMCloud
+from api.services.teacher_chat import TeacherChat
 from .models import Class, User, UserClass, Conversation, Message, UserConversation, AlarmingMessage, StudentDoubt, StudentDoubtMessage
 from .serializers import ClassSerializer, UserSerializer
 from django.contrib.auth.hashers import check_password,make_password
 
 
 
-_ollama = Client(
-    host=os.getenv('OLLAMA_HOST'),
-    headers={"Authorization": f"Bearer {os.getenv('OLLAMA_TOKEN')}"},
-)
+
 OLLAMA_MODEL = os.getenv('OLLAMA_MODEL')
 
 ALLOWED_MODELS = {
@@ -244,6 +242,31 @@ def teacher_stats(request, pk):
         "total_alunos": total_alunos,
         "total_conversas": total_conversas,
     })
+
+@api_view(['GET'])
+def teacher_classes(request, pk):
+    try:
+        teacher = User.objects.get(
+            pk=pk,
+            role='professor'
+        )
+    except User.DoesNotExist:
+        return Response(
+            {"error": "Professor não encontrado."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    classes = Class.objects.filter(
+        teacher=teacher
+    ).order_by('name')
+
+    return Response([
+        {
+            "id": classroom.id,
+            "name": classroom.name,
+        }
+        for classroom in classes
+    ])
 
 
 @api_view(['POST'])
@@ -505,7 +528,12 @@ def _classify_and_save(message, user):
                 ),
             }
         ]
-        result = _ollama.chat(model=OLLAMA_MODEL, messages=classification_msgs)
+
+        llm = LLMCloud()
+
+        result = llm.generate(
+            model=OLLAMA_MODEL, messages=classification_msgs
+        )
         if 'ALARM' in result.message.content.upper():
             AlarmingMessage.objects.create(user=user, message=message)
     except Exception:
@@ -529,6 +557,7 @@ def llmcloud_chat(request):
 
     msgs_to_send = [{"role": "system", "content": BASE_SYSTEM_PROMPT}]
     user = None
+    classroom = None
 
     user_id = request.data.get("user_id")
     if user_id:
@@ -538,6 +567,16 @@ def llmcloud_chat(request):
                 msgs_to_send.append({"role": "system", "content": user.custom_prompt})
         except User.DoesNotExist:
             pass
+    
+    classroom_id = request.data.get("classroom_id")
+    if classroom_id:
+        try:
+            classroom = Class.objects.get(pk=classroom_id)
+        except Class.DoesNotExist:
+            return Response(
+                {"error": "Turma não encontrada."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
     msgs_to_send.append({"role": "user", "content": message})
 
@@ -545,8 +584,24 @@ def llmcloud_chat(request):
     if model not in ALLOWED_MODELS:
         model = OLLAMA_MODEL
 
-    response = _ollama.chat(model=model, messages=msgs_to_send)
-    reply = response.message.content
+    llm = LLMCloud()
+
+    if user and user.role == "professor":
+
+        teacher_chat = TeacherChat()
+
+        reply = teacher_chat.chat(
+            classroom_id=classroom.id,
+            question=message,
+            model=model,
+        )
+
+    else:
+
+        reply = llm.generate(
+            model=model,
+            messages=msgs_to_send,
+        )
 
     conv_id = None
     if user:
@@ -559,7 +614,7 @@ def llmcloud_chat(request):
                 pass
 
         if not conv:
-            conv = Conversation.objects.create(title=message[:60])
+            conv = Conversation.objects.create(title=message[:60],classroom=classroom)
             UserConversation.objects.create(user=user, conversation=conv)
 
         Message.objects.create(role='user', content=message, conversation=conv)

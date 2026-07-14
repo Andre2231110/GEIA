@@ -81,7 +81,7 @@ export default function TeacherDashboard() {
       return
     }
 
-    fetch(`/api/teacher/${teacher.id}/stats/`)
+    fetch(`/api/teacher/${teacher.id}/stats`)
       .then(r => r.json())
       .then(d => setStats(d))
       .catch(() => {})
@@ -125,15 +125,10 @@ export default function TeacherDashboard() {
             Dashboard
           </button>
 
-          <button className="w-full text-left px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800">
-            Turmas
-          </button>
-
-          <button className="w-full text-left px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800">
-            Alunos
-          </button>
-
-          <button className="w-full text-left px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800">
+          <button
+            onClick={() => navigate('/teacher/chat')}
+            className="w-full text-left px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800"
+            >
             Assistente IA
           </button>
         </nav>

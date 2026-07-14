@@ -36,9 +36,12 @@ export default function Chat() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [selectedModel, setSelectedModel] = useState('gpt-oss:20b-cloud')
+  const [studentClasses, setStudentClasses] = useState([])
+  const [selectedClassroom, setSelectedClassroom] = useState('')
+  const [showClassMenu, setShowClassMenu] = useState(false)
   const [showModelMenu, setShowModelMenu] = useState(false)
   const MODELS = [
-    { id: 'gpt-oss:20b-cloud',     name: 'GPT OSS 20B',     desc: 'Modelo mais poderoso para tarefas complexas' },
+    { id: 'gpt-oss:20b-cloud', name: 'GPT OSS 20B', desc: 'Modelo mais poderoso para tarefas complexas' },
     { id: 'ministral-3:14b-cloud', name: 'Ministral 3 14B', desc: 'Eficiente para tarefas do dia a dia' },
     { id: 'qwen3-coder:480b-cloud', name: 'Qwen3 Coder 480B', desc: 'O mais rápido para respostas imediatas' },
   ]
@@ -153,13 +156,23 @@ export default function Chat() {
   }, [])
 
   useEffect(() => {
-    carregarConversas(user)
-    carregarPartilhadas(user)
-    carregarArquivadas(user)
-    carregarDuvidasProfessor(user)
-    carregarRespostasAluno(user)
-  }, [user, carregarConversas, carregarPartilhadas, carregarArquivadas, carregarDuvidasProfessor, carregarRespostasAluno])
+  if (!user) return;
 
+  loadStudentClasses(user.id);
+  carregarConversas(user);
+  carregarPartilhadas(user);
+  carregarArquivadas(user);
+  carregarDuvidasProfessor(user);
+  carregarRespostasAluno(user);
+
+}, [
+  user,
+  carregarConversas,
+  carregarPartilhadas,
+  carregarArquivadas,
+  carregarDuvidasProfessor,
+  carregarRespostasAluno,
+]);
   async function handleShare(e) {
     e.preventDefault()
     setShareError('')
@@ -298,6 +311,22 @@ export default function Chat() {
     } catch { }
   }
 
+  async function loadStudentClasses(studentId) {
+    try {
+      const res = await fetch(`/api/student/classes/?student_id=${studentId}`)
+      const data = await res.json()
+
+      setStudentClasses(data)
+
+      if (data.length === 1) {
+        setSelectedClassroom(String(data[0].id))
+      }
+
+    } catch {
+      setStudentClasses([])
+    }
+  }
+
   async function abrirModalDuvida() {
     setDoubtMessage('')
     setDoubtError('')
@@ -350,6 +379,7 @@ export default function Chat() {
   }
 
   async function sendMessage() {
+    console.log(selectedClassroom);
     const text = input.trim()
     if (!text || loading) return
     if (!user) { setShowLogin(true); return }
@@ -361,7 +391,7 @@ export default function Chat() {
       const res = await fetch('/api/llmcloud/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, user_id: user.id, conversation_id: conversaId, model: selectedModel }),
+        body: JSON.stringify({ message: text, user_id: user.id, conversation_id: conversaId,classroom_id: selectedClassroom, model: selectedModel }),
       })
       const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
@@ -469,7 +499,7 @@ export default function Chat() {
               title="Nova conversa"
             >
               <svg className="w-4.25 h-4.25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
           )}
@@ -548,23 +578,23 @@ export default function Chat() {
                         <div className="absolute right-0 top-[calc(100%+4px)] bg-[#1e1e1e] border border-[#333] rounded-xl min-w-40 z-100 shadow-[0_8px_24px_rgba(0,0,0,0.6)] overflow-hidden py-1">
                           <button className="flex items-center gap-2.5 w-full text-left bg-transparent border-none text-[#c5c5d2] text-[13px] font-[inherit] px-3.5 py-2 cursor-pointer hover:bg-[#2a2a2a] hover:text-white"
                             onClick={e => { e.stopPropagation(); iniciarEdicao(e, c); setMenuOpenId(null) }}>
-                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                             Alterar nome
                           </button>
                           <button className="flex items-center gap-2.5 w-full text-left bg-transparent border-none text-[#c5c5d2] text-[13px] font-[inherit] px-3.5 py-2 cursor-pointer hover:bg-[#2a2a2a] hover:text-white"
                             onClick={e => { e.stopPropagation(); setMenuOpenId(null); setShareConvId(c.id); setShareEmail(''); setShareError(''); setShareSuccess('') }}>
-                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
                             Partilhar
                           </button>
                           <button className="flex items-center gap-2.5 w-full text-left bg-transparent border-none text-[#c5c5d2] text-[13px] font-[inherit] px-3.5 py-2 cursor-pointer hover:bg-[#2a2a2a] hover:text-white"
                             onClick={e => { e.stopPropagation(); arquivarConversa(c.id) }}>
-                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="21 8 21 21 3 21 3 8" /><rect x="1" y="3" width="22" height="5" /><line x1="10" y1="12" x2="14" y2="12" /></svg>
                             Arquivar
                           </button>
                           <div className="h-px bg-[#333] mx-2 my-1" />
                           <button className="flex items-center gap-2.5 w-full text-left bg-transparent border-none text-[#e06c6c] text-[13px] font-[inherit] px-3.5 py-2 cursor-pointer hover:bg-[#2a1515] hover:text-[#ff9090]"
                             onClick={e => { e.stopPropagation(); setMenuOpenId(null); setConfirmDeleteId(c.id) }}>
-                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
                             Eliminar
                           </button>
                         </div>
@@ -619,8 +649,8 @@ export default function Chat() {
                 title="Desarquivar"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/>
-                  <polyline points="9 12 12 9 15 12"/><line x1="12" y1="9" x2="12" y2="16"/>
+                  <polyline points="21 8 21 21 3 21 3 8" /><rect x="1" y="3" width="22" height="5" />
+                  <polyline points="9 12 12 9 15 12" /><line x1="12" y1="9" x2="12" y2="16" />
                 </svg>
               </button>
             </div>
@@ -664,7 +694,7 @@ export default function Chat() {
               }}
             >
               <div className="flex items-center gap-1.5">
-                <svg className="w-3 h-3 text-[#4ade80] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg className="w-3 h-3 text-[#4ade80] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                 <span className="text-[12px] font-medium text-[#c5c5d2] truncate flex-1">{r.class_name}</span>
                 <span className="text-[10px] text-[#8e8ea0] shrink-0">{timeAgo(r.replied_at)}</span>
               </div>
@@ -719,7 +749,7 @@ export default function Chat() {
             <div className="flex items-center gap-3 px-5 py-3.5 bg-white border-b border-[#e0e0e0] shrink-0">
               <button onClick={() => setOpenReply(null)}
                 className="flex items-center gap-1.5 text-[#6b7280] hover:text-[#111] text-[13px] bg-transparent border-none cursor-pointer p-0">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                 Voltar
               </button>
               <div className="flex-1 min-w-0">
@@ -774,7 +804,7 @@ export default function Chat() {
                   className="w-8 h-8 bg-[#2271b1] rounded-full flex items-center justify-center text-white border-none cursor-pointer hover:bg-[#135e96] disabled:opacity-40 shrink-0"
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
                   </svg>
                 </button>
               </div>
@@ -786,7 +816,7 @@ export default function Chat() {
             <div className="flex items-center gap-3 px-5 py-3.5 bg-white border-b border-[#e0e0e0] shrink-0">
               <button onClick={() => setOpenDoubt(null)}
                 className="flex items-center gap-1.5 text-[#6b7280] hover:text-[#111] text-[13px] bg-transparent border-none cursor-pointer p-0">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                 Voltar
               </button>
               <div className="w-8 h-8 rounded-full bg-[#6366f1] flex items-center justify-center text-white text-[13px] font-semibold shrink-0">
@@ -814,7 +844,7 @@ export default function Chat() {
                       onClick={() => setConvExpanded(v => !v)}
                       className="flex items-center gap-2 w-full text-left bg-transparent border-none cursor-pointer p-0 text-[12px] font-medium text-[#6b7280] hover:text-[#374151]"
                     >
-                      <svg className={`w-3.5 h-3.5 transition-transform shrink-0 ${convExpanded ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                      <svg className={`w-3.5 h-3.5 transition-transform shrink-0 ${convExpanded ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                       {convExpanded ? 'Ocultar conversa com a IA' : `Ver conversa: "${openDoubt.conversation_title || 'sem título'}"`}
                     </button>
                     {convExpanded && (
@@ -893,7 +923,7 @@ export default function Chat() {
                   className="w-8 h-8 bg-[#2271b1] rounded-full flex items-center justify-center text-white border-none cursor-pointer hover:bg-[#135e96] disabled:opacity-40 shrink-0"
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
                   </svg>
                 </button>
               </div>
@@ -901,133 +931,144 @@ export default function Chat() {
           </div>
         ) : (
           <>
-          {/* Header do chat com botão de dúvida */}
-          {user?.role === 'aluno' && (
-          <div className="flex items-center justify-end px-6 py-2 bg-white border-b border-[#e0e0e0] shrink-0">
-            <button
-              onClick={abrirModalDuvida}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#eff6ff] border border-[#bfdbfe] text-[#2563eb] text-[13px] font-medium rounded-lg cursor-pointer hover:bg-[#dbeafe] transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              Enviar dúvida ao professor
-            </button>
-          </div>
-          )}
-
-          {sharedByName && (
-          <div className="flex items-center gap-2 px-6 py-2.5 bg-[#e8f0fb] border-b border-[#c3d4f0] text-[#2271b1] text-[13px]">
-            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
-            </svg>
-            Conversa partilhada por <strong className="ml-1">{sharedByName}</strong> — só de leitura
-          </div>
-        )}
-        <div className="flex-1 overflow-y-auto px-8 py-7 flex flex-col gap-3.5 scroll-smooth [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#c3c4c7] [&::-webkit-scrollbar-thumb]:rounded">
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[70%] px-4 py-2.75 text-[14px] leading-[1.6] wrap-break-word
-                ${msg.role === 'user'
-                  ? 'bg-[#2271b1] text-white rounded-[14px_14px_3px_14px] whitespace-pre-wrap'
-                  : 'bg-white text-[#1d2327] border border-[#c3c4c7] rounded-[14px_14px_14px_3px] shadow-[0_1px_1px_rgba(0,0,0,0.04)] msg-assistant-content'
-                }`}>
-                {msg.role === 'assistant' ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkMath]}
-                    rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
-                  >
-                    {normalizeMath(msg.content)}
-                  </ReactMarkdown>
-                ) : (
-                  msg.content
-                )}
-              </div>
-            </div>
-          ))}
-
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-white border border-[#c3c4c7] rounded-[14px_14px_14px_3px] shadow-[0_1px_1px_rgba(0,0,0,0.04)] flex items-center gap-1.25 px-4.5 py-3.5">
-                <span className="typing-dot" />
-                <span className="typing-dot" style={{ animationDelay: '0.2s' }} />
-                <span className="typing-dot" style={{ animationDelay: '0.4s' }} />
-              </div>
-            </div>
-          )}
-
-          <div ref={bottomRef} />
-        </div>
-
-        {<div className="px-8 py-2 bg-white shrink-0">
-          <div className="relative border border-[#c3c4c7] rounded-xl bg-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.07)] focus-within:border-[#2271b1] transition-colors">
-
-            {/* Popover do modelo — abre para cima */}
-            {showModelMenu && !sharedByName && (
-              <div
-                className="absolute bottom-full right-0 mb-2 bg-white border border-[#e0e0e0] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] overflow-hidden w-72 z-50"
-                onClick={e => e.stopPropagation()}
-              >
-                {MODELS.map(m => (
-                  <button
-                    key={m.id}
-                    onClick={() => { setSelectedModel(m.id); setShowModelMenu(false) }}
-                    className={`flex items-start justify-between w-full px-4 py-3.5 text-left border-none cursor-pointer transition-colors gap-3
-                      ${selectedModel === m.id ? 'bg-[#f6f7f7]' : 'bg-white hover:bg-[#f6f7f7]'}`}
-                  >
-                    <div>
-                      <p className="m-0 text-[14px] font-semibold text-[#1d2327]">{m.name}</p>
-                      <p className="m-0 text-[12px] text-[#50575e] mt-0.5">{m.desc}</p>
-                    </div>
-                    {selectedModel === m.id && (
-                      <svg className="w-4 h-4 text-[#1d2327] shrink-0 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                    )}
-                  </button>
-                ))}
+            {/* Header do chat com botão de dúvida */}
+            {user?.role === 'aluno' && (
+              <div className="flex items-center justify-end px-6 py-2 bg-white border-b border-[#e0e0e0] shrink-0">
+                <button
+                  onClick={abrirModalDuvida}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#eff6ff] border border-[#bfdbfe] text-[#2563eb] text-[13px] font-medium rounded-lg cursor-pointer hover:bg-[#dbeafe] transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  Enviar dúvida ao professor
+                </button>
               </div>
             )}
 
-            <textarea
-              ref={textareaRef}
-              className="w-full bg-transparent text-[#1d2327] border-none outline-none px-4 py-2.5 pr-44 text-[14px] font-[inherit] resize-none leading-normal min-h-8 max-h-32 placeholder:text-[#8c8f94] disabled:opacity-50 disabled:cursor-not-allowed"
-              value={input}
-              onChange={handleInput}
-              onKeyDown={handleKeyDown}
-              placeholder={sharedByName ? 'Esta conversa é só de leitura' : user ? 'Pergunte qualquer coisa...' : 'Faz login para enviar mensagens...'}
-              rows={1}
-              disabled={loading || !!sharedByName}
-            />
-
-            {/* Botões flutuantes à direita */}
-            <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
-              {!sharedByName && (
-                <button
-                  onClick={e => { e.stopPropagation(); setShowModelMenu(v => !v) }}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-medium text-[#50575e] bg-[#f0f0f1] hover:bg-[#dcdcde] transition-colors cursor-pointer border-none whitespace-nowrap"
-                >
-                  {MODELS.find(m => m.id === selectedModel)?.name}
-                  <svg className={`w-3 h-3 transition-transform ${showModelMenu ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9"/>
-                  </svg>
-                </button>
-              )}
-              <button
-                className="w-8 h-8 bg-[#2271b1] border-none rounded-lg text-white cursor-pointer flex items-center justify-center transition-colors hover:bg-[#135e96] disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-                onClick={sendMessage}
-                disabled={loading || !input.trim() || !!sharedByName}
-                aria-label="Enviar"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            {sharedByName && (
+              <div className="flex items-center gap-2 px-6 py-2.5 bg-[#e8f0fb] border-b border-[#c3d4f0] text-[#2271b1] text-[13px]">
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
                 </svg>
-              </button>
+                Conversa partilhada por <strong className="ml-1">{sharedByName}</strong> — só de leitura
+              </div>
+            )}
+            <div className="flex-1 overflow-y-auto px-8 py-7 flex flex-col gap-3.5 scroll-smooth [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#c3c4c7] [&::-webkit-scrollbar-thumb]:rounded">
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[70%] px-4 py-2.75 text-[14px] leading-[1.6] wrap-break-word
+                ${msg.role === 'user'
+                      ? 'bg-[#2271b1] text-white rounded-[14px_14px_3px_14px] whitespace-pre-wrap'
+                      : 'bg-white text-[#1d2327] border border-[#c3c4c7] rounded-[14px_14px_14px_3px] shadow-[0_1px_1px_rgba(0,0,0,0.04)] msg-assistant-content'
+                    }`}>
+                    {msg.role === 'assistant' ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm, remarkMath]}
+                        rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
+                      >
+                        {normalizeMath(msg.content)}
+                      </ReactMarkdown>
+                    ) : (
+                      msg.content
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-[#c3c4c7] rounded-[14px_14px_14px_3px] shadow-[0_1px_1px_rgba(0,0,0,0.04)] flex items-center gap-1.25 px-4.5 py-3.5">
+                    <span className="typing-dot" />
+                    <span className="typing-dot" style={{ animationDelay: '0.2s' }} />
+                    <span className="typing-dot" style={{ animationDelay: '0.4s' }} />
+                  </div>
+                </div>
+              )}
+
+              <div ref={bottomRef} />
             </div>
-          </div>
-        </div>}
-        </>
+
+            {<div className="px-8 py-2 bg-white shrink-0">
+              <div className="relative border border-[#c3c4c7] rounded-xl bg-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.07)] focus-within:border-[#2271b1] transition-colors">
+
+                {/* Popover do modelo — abre para cima */}
+                {showModelMenu && !sharedByName && (
+                  <div
+                    className="absolute bottom-full right-0 mb-2 bg-white border border-[#e0e0e0] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] overflow-hidden w-72 z-50"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {MODELS.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => { setSelectedModel(m.id); setShowModelMenu(false) }}
+                        className={`flex items-start justify-between w-full px-4 py-3.5 text-left border-none cursor-pointer transition-colors gap-3
+                      ${selectedModel === m.id ? 'bg-[#f6f7f7]' : 'bg-white hover:bg-[#f6f7f7]'}`}
+                      >
+                        <div>
+                          <p className="m-0 text-[14px] font-semibold text-[#1d2327]">{m.name}</p>
+                          <p className="m-0 text-[12px] text-[#50575e] mt-0.5">{m.desc}</p>
+                        </div>
+                        {selectedModel === m.id && (
+                          <svg className="w-4 h-4 text-[#1d2327] shrink-0 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <textarea
+                  ref={textareaRef}
+                  className="w-full bg-transparent text-[#1d2327] border-none outline-none px-4 py-2.5 pr-44 text-[14px] font-[inherit] resize-none leading-normal min-h-8 max-h-32 placeholder:text-[#8c8f94] disabled:opacity-50 disabled:cursor-not-allowed"
+                  value={input}
+                  onChange={handleInput}
+                  onKeyDown={handleKeyDown}
+                  placeholder={sharedByName ? 'Esta conversa é só de leitura' : user ? 'Pergunte qualquer coisa...' : 'Faz login para enviar mensagens...'}
+                  rows={1}
+                  disabled={loading || !!sharedByName}
+                />
+
+                {/* Botões flutuantes à direita */}
+                <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                  {!sharedByName && (
+                    <button
+                      onClick={e => { e.stopPropagation(); setShowModelMenu(v => !v) }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-medium text-[#50575e] bg-[#f0f0f1] hover:bg-[#dcdcde] transition-colors cursor-pointer border-none whitespace-nowrap"
+                    >
+                      {MODELS.find(m => m.id === selectedModel)?.name}
+                      <svg className={`w-3 h-3 transition-transform ${showModelMenu ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                  )}
+                  <select
+                    value={selectedClassroom ?? ""}
+                    onChange={(e) => setSelectedClassroom(Number(e.target.value))}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  >
+                    {studentClasses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="w-8 h-8 bg-[#2271b1] border-none rounded-lg text-white cursor-pointer flex items-center justify-center transition-colors hover:bg-[#135e96] disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                    onClick={sendMessage}
+                    disabled={loading || !input.trim() || !!sharedByName}
+                    aria-label="Enviar"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13" />
+                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>}
+          </>
         )}
       </div>
 
@@ -1134,7 +1175,7 @@ export default function Chat() {
               <button className="w-7 h-7 bg-transparent border-none text-[#8c8f94] cursor-pointer flex items-center justify-center rounded hover:bg-[#f0f0f1] hover:text-[#1d2327] transition-colors"
                 onClick={() => setShareConvId(null)}>
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
@@ -1191,7 +1232,7 @@ export default function Chat() {
               {conversaId ? (
                 <div className="flex items-center gap-2 bg-[#f0fdf4] border border-[#bbf7d0] rounded-lg px-3 py-2.5">
                   <svg className="w-4 h-4 text-[#16a34a] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
                   <span className="text-[13px] text-[#166534]">
                     Conversa <strong>"{conversas.find(c => c.id === conversaId)?.title || 'atual'}"</strong> será incluída
@@ -1200,7 +1241,7 @@ export default function Chat() {
               ) : (
                 <div className="flex items-center gap-2 bg-[#fefce8] border border-[#fde68a] rounded-lg px-3 py-2.5">
                   <svg className="w-4 h-4 text-[#ca8a04] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                   </svg>
                   <span className="text-[13px] text-[#92400e]">Abre uma conversa antes de enviar a dúvida</span>
                 </div>
