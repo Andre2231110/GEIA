@@ -105,6 +105,17 @@ class Conversation(models.Model):
         null=True,
         blank=True,
     )
+    
+    CONVERSATION_TYPE_CHOICES = [
+        ("student", "Aluno"),
+        ("teacher", "Professor"),
+    ]
+
+    conversation_type = models.CharField(
+        max_length=20,
+        choices=CONVERSATION_TYPE_CHOICES,
+        default="student",
+    )
 
     is_processed = models.BooleanField(default=False)
 

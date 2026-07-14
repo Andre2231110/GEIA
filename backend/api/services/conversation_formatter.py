@@ -10,6 +10,7 @@ class ConversationFormatter:
 
     def get_unprocessed_conversations(self, classroom_id):
 
+
         return (
             Conversation.objects
             .filter(
@@ -17,6 +18,7 @@ class ConversationFormatter:
                 is_processed=False,
                 is_archived=False,
                 deleted_at__isnull=True,
+                conversation_type="student",
             )
             .prefetch_related("messages")
             .order_by("created_at")

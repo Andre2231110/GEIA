@@ -304,7 +304,7 @@ def teacher_doubts(request, pk):
     except User.DoesNotExist:
         return Response({'error': 'Professor não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
     turmas = Class.objects.filter(teacher=teacher)
-    doubts = StudentDoubt.objects.filter(classroom__in=turmas).select_related('student', 'classroom', 'conversation').order_by('-created_at')
+    doubts = StudentDoubt.objects.filter(classroom__in=turmas,is_read=False).select_related('student', 'classroom', 'conversation').order_by('-created_at')
     result = []
     for d in doubts:
         messages = []
@@ -340,18 +340,85 @@ def teacher_doubt_mark_read(request, pk):
 
 @api_view(['PATCH'])
 def teacher_doubt_reply(request, pk):
-    try:
-        doubt = StudentDoubt.objects.get(pk=pk)
-    except StudentDoubt.DoesNotExist:
-        return Response({'error': 'Não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+    teacher_id = request.data.get('teacher_id')
     reply = request.data.get('reply', '').strip()
+
+    if not teacher_id:
+        return Response(
+            {'error': 'Professor não indicado.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     if not reply:
-        return Response({'error': 'Resposta não pode estar vazia.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {'error': 'Resposta não pode estar vazia.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        teacher = User.objects.get(
+            pk=teacher_id,
+            role='professor'
+        )
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'Professor não encontrado.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    try:
+        doubt = StudentDoubt.objects.select_related(
+            'classroom'
+        ).get(pk=pk)
+    except StudentDoubt.DoesNotExist:
+        return Response(
+            {'error': 'Dúvida não encontrada.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if doubt.classroom.teacher_id != teacher.id:
+        return Response(
+            {
+                'error': (
+                    'Não tem permissão para responder '
+                    'a esta dúvida.'
+                )
+            },
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    message = StudentDoubtMessage.objects.create(
+        doubt=doubt,
+        sender=teacher,
+        content=reply
+    )
+
     doubt.teacher_reply = reply
     doubt.replied_at = timezone.now()
     doubt.is_read = True
-    doubt.save()
-    return Response({'ok': True})
+
+    doubt.save(
+        update_fields=[
+            'teacher_reply',
+            'replied_at',
+            'is_read',
+        ]
+    )
+
+    return Response({
+        'ok': True,
+        'teacher_reply': doubt.teacher_reply,
+        'replied_at': doubt.replied_at.isoformat(),
+        'is_read': doubt.is_read,
+        'message': {
+            'id': message.id,
+            'sender_id': message.sender_id,
+            'sender_name': message.sender.name,
+            'sender_role': message.sender.role,
+            'content': message.content,
+            'created_at': message.created_at.isoformat(),
+        }
+    })
 
 
 @api_view(['GET'])
@@ -543,8 +610,12 @@ def _classify_and_save(message, user):
 @api_view(['POST'])
 def llmcloud_chat(request):
     message = request.data.get("message", "").strip()
+
     if not message:
-        return Response({"error": "Mensagem vazia."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Mensagem vazia."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     BASE_SYSTEM_PROMPT = (
         "You are a helpful educational assistant. "
@@ -555,38 +626,75 @@ def llmcloud_chat(request):
         "Never write fractions as '1/2' — always use $\\frac{1}{2}$."
     )
 
-    msgs_to_send = [{"role": "system", "content": BASE_SYSTEM_PROMPT}]
+    msgs_to_send = [
+        {
+            "role": "system",
+            "content": BASE_SYSTEM_PROMPT
+        }
+    ]
+
     user = None
     classroom = None
 
     user_id = request.data.get("user_id")
+
     if user_id:
         try:
             user = User.objects.get(pk=user_id)
+
             if user.custom_prompt:
-                msgs_to_send.append({"role": "system", "content": user.custom_prompt})
+                msgs_to_send.append({
+                    "role": "system",
+                    "content": user.custom_prompt
+                })
+
         except User.DoesNotExist:
-            pass
-    
+            return Response(
+                {"error": "Utilizador não encontrado."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
     classroom_id = request.data.get("classroom_id")
+
     if classroom_id:
         try:
             classroom = Class.objects.get(pk=classroom_id)
+
         except Class.DoesNotExist:
             return Response(
                 {"error": "Turma não encontrada."},
                 status=status.HTTP_404_NOT_FOUND
             )
 
-    msgs_to_send.append({"role": "user", "content": message})
+    msgs_to_send.append({
+        "role": "user",
+        "content": message
+    })
 
-    model = request.data.get('model', OLLAMA_MODEL)
+    model = request.data.get(
+        "model",
+        OLLAMA_MODEL
+    )
+
     if model not in ALLOWED_MODELS:
         model = OLLAMA_MODEL
 
     llm = LLMCloud()
 
+    # Chat do professor com contexto da turma
     if user and user.role == "professor":
+
+        if not classroom:
+            return Response(
+                {"error": "É obrigatório selecionar uma turma."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if classroom.teacher_id != user.id:
+            return Response(
+                {"error": "O professor não tem acesso a esta turma."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         teacher_chat = TeacherChat()
 
@@ -596,35 +704,85 @@ def llmcloud_chat(request):
             model=model,
         )
 
+    # Chat normal dos alunos
     else:
-
         reply = llm.generate(
             model=model,
             messages=msgs_to_send,
         )
 
     conv_id = None
+
     if user:
         conv = None
-        conversation_id = request.data.get("conversation_id")
+
+        conversation_id = request.data.get(
+            "conversation_id"
+        )
+
         if conversation_id:
             try:
-                conv = Conversation.objects.get(pk=conversation_id)
+                conv = Conversation.objects.get(
+                    pk=conversation_id,
+                    userconversation__user=user,
+                    deleted_at__isnull=True,
+                )
+
             except Conversation.DoesNotExist:
-                pass
+                return Response(
+                    {
+                        "error": (
+                            "Conversa não encontrada ou sem acesso."
+                        )
+                    },
+                    status=status.HTTP_404_NOT_FOUND
+                )
 
         if not conv:
-            conv = Conversation.objects.create(title=message[:60],classroom=classroom)
-            UserConversation.objects.create(user=user, conversation=conv)
+            conversation_type = (
+                "teacher"
+                if user.role == "professor"
+                else "student"
+            )
 
-        Message.objects.create(role='user', content=message, conversation=conv)
-        Message.objects.create(role='assistant', content=reply, conversation=conv)
+            conv = Conversation.objects.create(
+                title=message[:60],
+                classroom=classroom,
+                conversation_type=conversation_type,
+            )
+
+            UserConversation.objects.create(
+                user=user,
+                conversation=conv
+            )
+
+        Message.objects.create(
+            role="user",
+            content=message,
+            conversation=conv
+        )
+
+        Message.objects.create(
+            role="assistant",
+            content=reply,
+            conversation=conv
+        )
+
         conv_id = conv.id
 
-        t = threading.Thread(target=_classify_and_save, args=(message, user), daemon=True)
-        t.start()
+        # A classificação de segurança faz sentido sobretudo para alunos.
+        if user.role == "aluno":
+            thread = threading.Thread(
+                target=_classify_and_save,
+                args=(message, user),
+                daemon=True,
+            )
+            thread.start()
 
-    return Response({"reply": reply, "conversation_id": conv_id})
+    return Response({
+        "reply": reply,
+        "conversation_id": conv_id
+    })
 
 
 @api_view(['GET'])
@@ -653,6 +811,90 @@ def alarming_message_mark_read(request, pk):
         return Response({'success': True})
     except AlarmingMessage.DoesNotExist:
         return Response({'error': 'Não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+from .models import StudentDoubt, StudentDoubtMessage, User
+
+
+@api_view(["POST"])
+def reply_student_doubt(request, doubt_id):
+    teacher_id = request.data.get("teacher_id")
+    content = request.data.get("content", "").strip()
+
+    if not teacher_id:
+        return Response(
+            {"error": "O professor não foi indicado."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not content:
+        return Response(
+            {"error": "A resposta não pode estar vazia."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    teacher = get_object_or_404(
+        User,
+        pk=teacher_id,
+        role="professor",
+    )
+
+    doubt = get_object_or_404(
+        StudentDoubt.objects.select_related(
+            "classroom",
+            "student",
+        ),
+        pk=doubt_id,
+    )
+
+    # Impede que um professor responda a dúvidas de outra turma
+    if doubt.classroom.teacher_id != teacher.id:
+        return Response(
+            {"error": "Não tem permissão para responder a esta dúvida."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    thread_message = StudentDoubtMessage.objects.create(
+        doubt=doubt,
+        sender=teacher,
+        content=content,
+    )
+
+    doubt.teacher_reply = content
+    doubt.replied_at = timezone.now()
+    doubt.is_read = True
+
+    doubt.save(
+        update_fields=[
+            "teacher_reply",
+            "replied_at",
+            "is_read",
+        ]
+    )
+
+    return Response(
+        {
+            "message": "Resposta enviada com sucesso.",
+            "reply": {
+                "id": thread_message.id,
+                "sender_id": teacher.id,
+                "sender_name": teacher.name,
+                "sender_role": teacher.role,
+                "content": thread_message.content,
+                "created_at": thread_message.created_at,
+            },
+            "teacher_reply": doubt.teacher_reply,
+            "replied_at": doubt.replied_at,
+            "is_read": doubt.is_read,
+        },
+        status=status.HTTP_201_CREATED,
+    )
 
 
 @api_view(['GET'])
