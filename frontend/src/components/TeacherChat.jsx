@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
+
+function normalizeMath(content = '') {
+  return content
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_, math) => `$$${math}$$`)
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_, math) => `$${math}$`)
+}
+
 export default function TeacherChat() {
   const navigate = useNavigate()
 
@@ -500,13 +512,24 @@ export default function TeacherChat() {
                     }`}
                   >
                     <div
-                      className={`max-w-[75%] whitespace-pre-wrap rounded-2xl px-4 py-3 leading-relaxed ${
+                      className={`max-w-[75%] rounded-2xl px-4 py-3 leading-relaxed ${
                         isTeacher
-                          ? 'rounded-br-sm bg-blue-600 text-white'
-                          : 'rounded-bl-sm border border-slate-200 bg-white text-slate-800 shadow-sm'
+                          ? 'whitespace-pre-wrap rounded-br-sm bg-blue-600 text-white'
+                          : 'msg-assistant-content rounded-bl-sm border border-slate-200 bg-white text-slate-800 shadow-sm'
                       }`}
                     >
-                      {currentMessage.content}
+                      {isTeacher ? (
+                        currentMessage.content
+                      ) : (
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm, remarkMath]}
+                          rehypePlugins={[
+                            [rehypeKatex, { throwOnError: false }],
+                          ]}
+                        >
+                          {normalizeMath(currentMessage.content)}
+                        </ReactMarkdown>
+                      )}
                     </div>
                   </div>
                 )
