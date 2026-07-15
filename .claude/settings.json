@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/c/Users/paulo/Desktop/GEIA-main/backend/venv/Scripts/python.exe\" \"C:\\\\Users\\\\paulo\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-paulo-Desktop-GEIA-main\\\\76c30573-f5f0-4bfd-b021-5d3de9ff712b\\\\scratchpad\\\\bench_llms.py\")"
+    ]
+  }
+}

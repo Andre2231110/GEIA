@@ -520,8 +520,7 @@ def llmcloud_chat(request):
 
     BASE_SYSTEM_PROMPT = (
         "You are a helpful educational assistant. "
-        "When writing any mathematical expression — fractions, integrals, derivatives, sums, roots, or equations — "
-        "always use LaTeX notation. "
+        "When writing any mathematical expression, fractions, integrals, derivatives, sums, roots, or equations"
         "Use $...$ for inline math (e.g. $\\frac{1}{2}$, $\\int_a^b f(x)\\,dx$) "
         "and $$...$$ on its own line for display math. "
         "Never write fractions as '1/2' — always use $\\frac{1}{2}$."
