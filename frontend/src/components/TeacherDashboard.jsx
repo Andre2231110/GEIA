@@ -1,5 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
+import './Chat.css'
+
+function normalizeMath(content) {
+  return content
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_, math) => `$$${math}$$`)
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_, math) => `$${math}$`)
+}
 
 function timeAgo(isoDate) {
   const diff = Math.floor((Date.now() - new Date(isoDate)) / 1000)
@@ -493,7 +505,18 @@ export default function TeacherDashboard() {
                           </div>
 
                           <div className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
-                            {m.content}
+                            {m.role === 'assistant' ? (
+                              <div className="msg-assistant-content">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm, remarkMath]}
+                                  rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
+                                >
+                                  {normalizeMath(m.content)}
+                                </ReactMarkdown>
+                              </div>
+                            ) : (
+                              m.content
+                            )}
                           </div>
                         </div>
                       ))}

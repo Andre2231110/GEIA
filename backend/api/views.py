@@ -44,6 +44,8 @@ def user_login(request):
     password = request.data.get("password", "")
     try:
         user = User.objects.get(email=email)
+        if user.role == 'professor':
+            return Response({"error": "Professores devem entrar através do backoffice."}, status=status.HTTP_403_FORBIDDEN)
         if not user.is_active:
             return Response({"error": "Conta ainda não ativada."}, status=status.HTTP_401_UNAUTHORIZED)
         if check_password(password, user.password):
@@ -853,7 +855,6 @@ def reply_student_doubt(request, doubt_id):
         pk=doubt_id,
     )
 
-    # Impede que um professor responda a dúvidas de outra turma
     if doubt.classroom.teacher_id != teacher.id:
         return Response(
             {"error": "Não tem permissão para responder a esta dúvida."},
