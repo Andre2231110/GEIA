@@ -69,7 +69,7 @@ export default function TeacherLogin() {
                 placeholder="professor@escola.pt"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900"
+                className="w-full rounded-xl border text-black px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900"
                 required
               />
             </div>
@@ -84,7 +84,7 @@ export default function TeacherLogin() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900"
+                className="w-full rounded-xl border text-black px-4 py-3 outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900"
                 required
               />
             </div>
