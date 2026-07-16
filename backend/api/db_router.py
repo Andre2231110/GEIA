@@ -1,5 +1,6 @@
 class ProcessedDatabaseRouter:
     processed_models = {
+        "classsummary",
         "processingbatch",
         "dailyclasssummary",
         "topicinsight",
